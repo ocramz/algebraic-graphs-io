@@ -1,2 +1,5 @@
 # algebraic-graphs-io
-I/O utilities for algebraic-graphs
+
+[![Build Status](https://travis-ci.org/ocramz/algebraic-graphs-io.png)](https://travis-ci.org/ocramz/algebraic-graphs-io)
+
+TODO Description.
