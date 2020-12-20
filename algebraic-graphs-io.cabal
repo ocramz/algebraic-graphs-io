@@ -8,11 +8,13 @@ license-file:        LICENSE
 author:              Marco Zocca
 maintainer:          ocramz
 copyright:           2020-2021 ocramz
-category:            Graphs Parsing
+category:            Graphs, Parsing
 build-type:          Simple
 extra-source-files:  README.md
+                     CHANGELOG.md
                      assets/basic.gml
                      assets/labeled.gml
+                     assets/karate.gml
 cabal-version:       >=1.10
 tested-with:         GHC == 8.8.4
 
