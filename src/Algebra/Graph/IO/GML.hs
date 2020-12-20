@@ -3,14 +3,14 @@
 module Algebra.Graph.IO.GML where
 
 import Control.Applicative hiding (many, some)
-import Data.Char (isAlpha)
+import Data.Char (isAlpha, isSpace)
 import Data.Functor (void)
 import Data.Void (Void)
 
 -- algebraic-graphs
 import Algebra.Graph (Graph)
 -- megaparsec
-import Text.Megaparsec (Parsec, parseTest, satisfy)
+import Text.Megaparsec (Parsec, parseTest, satisfy, (<?>))
 import Text.Megaparsec.Char (space1)
 import qualified Text.Megaparsec.Char.Lexer as L
 -- parser-combinators
@@ -45,6 +45,11 @@ tstr = do
   parseTest gmlGraph t
 
 
+gmlLabel :: Parser String
+gmlLabel = symbol "label" *> lexeme (quoted p)
+  where
+    p = many $ satisfy (/= '\"')
+
 data GMLNode a = GMLNode a (Maybe String) deriving (Show)
 
 gmlNode :: Parser (GMLNode String)
@@ -52,11 +57,13 @@ gmlNode = do
   void $ symbol "node"
   sqBkts $ do
     n <- symbol "id" *> lexeme anyString
-    l <- optional $ symbol "label" *> lexeme anyString
+    l <- optional gmlLabel --  <?> "node label"
     pure $ GMLNode n l
 
 sqBkts :: Parser a -> Parser a
 sqBkts = between (symbol "[") (symbol "]")
+quoted :: Parser a -> Parser a
+quoted = between (symbol "\"") (symbol "\"")
 
 data GMLEdge a = GMLEdge a a (Maybe String) deriving (Show)
 
@@ -66,7 +73,7 @@ gmlEdge = do
   sqBkts $ do
     a <- symbol "source" *> lexeme anyString
     b <- symbol "target" *> lexeme anyString
-    l <- optional $ symbol "label" *> lexeme anyString
+    l <- optional gmlLabel
     pure $ GMLEdge a b l
 
 data GMLGraph a = GMLGraph [GMLNode a] [GMLEdge a] deriving (Show)
