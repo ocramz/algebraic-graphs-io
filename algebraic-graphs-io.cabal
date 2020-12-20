@@ -1,7 +1,7 @@
 name:                algebraic-graphs-io
-version:             0.1.0.0
+version:             0.1.1.0
 synopsis:            I/O utilities for algebraic-graphs
-description:         I/O utilities for algebraic-graphs. Currently, parsers for the GML (Gephi) format.
+description:         I/O utilities for algebraic-graphs. Currently, parsers for the GML format.
 homepage:            https://github.com/ocramz/algebraic-graphs-io
 license:             BSD3
 license-file:        LICENSE
@@ -15,6 +15,7 @@ extra-source-files:  README.md
                      assets/basic.gml
                      assets/labeled.gml
                      assets/karate.gml
+                     assets/lesmiserables.gml
 cabal-version:       >=1.10
 tested-with:         GHC == 8.8.4
 
