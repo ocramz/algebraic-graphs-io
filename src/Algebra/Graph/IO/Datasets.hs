@@ -1,4 +1,4 @@
-{-# options_ghc -Wno-unused-imports #-}
+{-# options_ghc -Wno-unused-imports -Wno-type-defaults #-}
 module Algebra.Graph.IO.Datasets where
 
 import Algebra.Graph (Graph)

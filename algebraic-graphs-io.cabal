@@ -25,7 +25,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Algebra.Graph.IO.GML
                        Algebra.Graph.IO.Internal.Megaparsec
-                       Algebra.Graph.IO.Dataset
+                       Algebra.Graph.IO.Datasets
   build-depends:       base >= 4.7 && < 5
                      , algebraic-graphs
                      , containers
