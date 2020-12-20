@@ -1,5 +1,5 @@
 name:                algebraic-graphs-io
-version:             0.1.1.0
+version:             0.1.2.0
 synopsis:            I/O utilities for algebraic-graphs
 description:         I/O utilities for algebraic-graphs. Currently, parsers for the GML format.
 homepage:            https://github.com/ocramz/algebraic-graphs-io
