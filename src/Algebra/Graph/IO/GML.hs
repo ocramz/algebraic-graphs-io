@@ -1,6 +1,6 @@
 {-# language OverloadedStrings #-}
 {-# options_ghc -Wno-unused-imports #-}
-module Algebra.Graph.IO.GML where
+module Algebra.Graph.IO.GML (gmlGraph, gmlGraphP, GMLGraph(..), GMLNode(..), GMLEdge(..)) where
 
 import Control.Applicative hiding (many, some)
 import Data.Char (isAlpha, isSpace)
@@ -8,9 +8,9 @@ import Data.Functor (void)
 import Data.Void (Void)
 
 -- algebraic-graphs
-import Algebra.Graph (Graph)
+import qualified Algebra.Graph as G (Graph, empty, vertex, edge, overlay)
 -- megaparsec
-import Text.Megaparsec (Parsec, parseTest, satisfy, (<?>))
+import Text.Megaparsec (Parsec, parse, parseTest, satisfy, (<?>))
 import Text.Megaparsec.Char (space1)
 import qualified Text.Megaparsec.Char.Lexer as L
 -- parser-combinators
@@ -21,43 +21,40 @@ import Data.Text.IO (readFile)
 
 import Prelude hiding (readFile)
 
-type Parser = Parsec Void Text
+import Algebra.Graph.IO.Internal.Megaparsec (Parser, lexeme, symbol, anyString)
 
-lexeme :: Parser a -> Parser a
-lexeme = L.lexeme sc
+-- | load a 'G.Graph' from a 'GMLGraph'
+gmlGraph :: GMLGraph a -> G.Graph a
+gmlGraph (GMLGraph _ es) =
+  foldl (\gr (GMLEdge a b _) -> G.edge a b `G.overlay` gr) G.empty es
 
-symbol :: Text -> Parser Text
-symbol = L.symbol sc
+-- | Graph entities of the GML graph format
+data GMLGraph a = GMLGraph [GMLNode a] [GMLEdge a] deriving (Show)
 
--- space consumer
-sc :: Parser ()
-sc = L.space
-     space1
-     (L.skipLineComment "//")
-     (L.skipBlockComment "/*" "*/")
-
-anyString :: Parser String
-anyString = many (satisfy isAlpha)
-
-tstr :: IO ()
-tstr = do
-  t <- readFile "assets/basic.gml"
-  parseTest gmlGraph t
-
+-- | Parser for the GML graph format
+gmlGraphP :: Parser a -- ^ parser for node id's
+          -> Parser (GMLGraph a)
+gmlGraphP p = do
+  void $ symbol "graph"
+  sqBkts $ do
+    ns <- many $ gmlNode p
+    es <- many $ gmlEdge p
+    pure $ GMLGraph ns es
 
 gmlLabel :: Parser String
 gmlLabel = symbol "label" *> lexeme (quoted p)
   where
     p = many $ satisfy (/= '\"')
 
+-- | GML nodes
 data GMLNode a = GMLNode a (Maybe String) deriving (Show)
 
-gmlNode :: Parser (GMLNode String)
-gmlNode = do
+gmlNode :: Parser a -> Parser (GMLNode a)
+gmlNode p = do
   void $ symbol "node"
   sqBkts $ do
-    n <- symbol "id" *> lexeme anyString
-    l <- optional gmlLabel --  <?> "node label"
+    n <- symbol "id" *> lexeme p
+    l <- optional gmlLabel
     pure $ GMLNode n l
 
 sqBkts :: Parser a -> Parser a
@@ -65,56 +62,16 @@ sqBkts = between (symbol "[") (symbol "]")
 quoted :: Parser a -> Parser a
 quoted = between (symbol "\"") (symbol "\"")
 
+-- | GML edges
 data GMLEdge a = GMLEdge a a (Maybe String) deriving (Show)
 
-gmlEdge :: Parser (GMLEdge String)
-gmlEdge = do
+gmlEdge :: Parser a -> Parser (GMLEdge a)
+gmlEdge p = do
   void $ symbol "edge"
   sqBkts $ do
-    a <- symbol "source" *> lexeme anyString
-    b <- symbol "target" *> lexeme anyString
+    a <- symbol "source" *> lexeme p
+    b <- symbol "target" *> lexeme p
     l <- optional gmlLabel
     pure $ GMLEdge a b l
 
-data GMLGraph a = GMLGraph [GMLNode a] [GMLEdge a] deriving (Show)
 
-gmlGraph :: Parser (GMLGraph String)
-gmlGraph = do
-  void $ symbol "graph"
-  sqBkts $ do
-    ns <- many gmlNode
-    es <- many gmlEdge
-    pure $ GMLGraph ns es
-
-{-
-graph
-[
-  node
-  [
-   id A
-   label "Node A"
-  ]
-  node
-  [
-   id B
-   label "Node B"
-  ]
-  node
-  [
-   id C
-   label "Node C"
-  ]
-   edge
-  [
-   source B
-   target A
-   label "Edge B to A"
-  ]
-  edge
-  [
-   source C
-   target A
-   label "Edge C to A"
-  ]
-]
--}
