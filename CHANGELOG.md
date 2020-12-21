@@ -1,8 +1,11 @@
 * 0.1.4
 
-  Provide example datasets as `IO (Graph .. )` actions
+  Add .tsv format and networking/decompression utilities
   
-  Hide Megaparsec helpers
+  Add blockmodel50 small dataset
+
+  Provide example datasets as `IO (Graph .. )`
+  
 
 * 0.1.2
 
