@@ -12,8 +12,8 @@ import qualified Algebra.Graph as G (Graph, edge, empty, overlay)
 import Data.ByteString (ByteString)
 -- conduit
 import Conduit (MonadUnliftIO(..), MonadResource, runResourceT)
-import Data.Conduit (runConduit, ConduitT, (.|), yield)
-import qualified Data.Conduit.Combinators as C (print, sinkFile, map, foldM)
+import Data.Conduit (runConduit, ConduitT, (.|), yield, await)
+import qualified Data.Conduit.Combinators as C (print, sinkFile, map, mapM, foldM, mapWhile)
 -- conduit-extra
 import Data.Conduit.Zlib (ungzip)
 -- csv-conduit
@@ -30,7 +30,7 @@ import Control.Monad.Combinators (count)
 -- primitive
 import Control.Monad.Primitive (PrimMonad(..))
 -- tar-conduit
-import Data.Conduit.Tar (Header(..), untarChunks, withEntries, headerFileType, FileType(..), headerFilePath)
+import Data.Conduit.Tar (Header(..), untarChunks, TarChunk, withEntries, headerFileType, FileType(..), headerFilePath)
 -- text
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
@@ -64,19 +64,29 @@ test0 = do
     fetch rq .|
     ungzip .|
     untarChunks .|
-    withEntries p .|
+    parseTarEntry fname .|
     C.print
     where
       fname :: FilePath
       fname = "simulated_blockmodel_graph_50_nodes.tsv"
-      p h = when (headerFileType h == FTNormal &&
-                   headerFilePath h == fname) $ do
-        process
 
+
+parseTarEntry :: (MonadThrow m) =>
+                 FilePath -- ^ file in .tar archive
+              -> ConduitT TarChunk (G.Graph Int) m ()
+parseTarEntry fname =
+  withEntries (\h -> when (headerFileType h == FTNormal &&
+                            headerFilePath h == fname) process)
+
+process :: (MonadThrow m) => ConduitT ByteString (G.Graph Int) m ()
+process = do
+  g <- parseTSV .|
+       C.map edgeP .|
+       accGraph
+  yield g
 
 parseTSV :: MonadThrow m => ConduitT ByteString (Row Text) m ()
 parseTSV = intoCSV tsvSettings
-
 
 edgeP :: [Text] -> Maybe (Edge Int)
 edgeP t =
@@ -87,17 +97,8 @@ edgeP t =
 
 data Edge a = Edge a a a deriving (Eq, Show)
 
-
 accGraph :: (Monad m) => ConduitT (Maybe (Edge a)) o m (G.Graph a)
-accGraph = flip C.foldM G.empty $ \acc m -> do
+accGraph = flip C.foldM G.empty $ \acc m -> 
   case m of
     Just (Edge a b _) -> pure $ (a `G.edge` b) `G.overlay` acc
     Nothing -> pure acc
-
-
-process :: (MonadThrow m) => ConduitT ByteString (G.Graph Int) m ()
-process = do
-  g <- parseTSV .|
-          C.map edgeP .|
-          accGraph
-  yield g
