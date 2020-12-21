@@ -1,7 +1,7 @@
 name:                algebraic-graphs-io
 version:             0.1.4.0
 synopsis:            I/O utilities for algebraic-graphs
-description:         I/O utilities for algebraic-graphs. Currently, parsers for the GML format. See README for details
+description:         I/O utilities for algebraic-graphs. See README for details
 homepage:            https://github.com/ocramz/algebraic-graphs-io
 license:             BSD3
 license-file:        LICENSE
@@ -30,7 +30,8 @@ library
                        Algebra.Graph.IO.Datasets
                        Algebra.Graph.IO.MatrixMarket
                        Algebra.Graph.IO.SV
-  other-modules:       Algebra.Graph.IO.Internal.Conduit
+                       Algebra.Graph.IO.Internal.Conduit
+  other-modules:       
                        Algebra.Graph.IO.Internal.Megaparsec
   build-depends:       base >= 4.7 && < 5
                      , algebraic-graphs
@@ -42,6 +43,7 @@ library
                      , csv-conduit
                      , dot
                      , exceptions
+                     , filepath
                      , http-conduit
                      , matrix-market-attoparsec
                      , megaparsec

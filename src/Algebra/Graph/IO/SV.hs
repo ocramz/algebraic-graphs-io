@@ -1,6 +1,8 @@
 {-# language OverloadedStrings #-}
 {-# options_ghc -Wno-unused-imports #-}
-module Algebra.Graph.IO.SV where
+module Algebra.Graph.IO.SV (
+  tsvSink
+  ) where
 
 import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO(..))
@@ -13,13 +15,14 @@ import Data.ByteString (ByteString)
 -- conduit
 import Conduit (MonadUnliftIO(..), MonadResource, runResourceT)
 import Data.Conduit (runConduit, ConduitT, (.|), yield, await)
-import qualified Data.Conduit.Combinators as C (print, sinkFile, map, mapM, foldM, mapWhile)
+import qualified Data.Conduit.Combinators as C (print, sourceFile, sinkFile, map, mapM, foldM, mapWhile)
 -- conduit-extra
 import Data.Conduit.Zlib (ungzip)
 -- csv-conduit
 import Data.CSV.Conduit (CSV(..), CSVSettings(..), Row)
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
+
 -- http-conduit
 import Network.HTTP.Simple (httpSource, getResponseBody, Response, Request, parseRequest, setRequestMethod)
 -- megaparsec
@@ -76,14 +79,19 @@ parseTarEntry :: (MonadThrow m) =>
               -> ConduitT TarChunk (G.Graph Int) m ()
 parseTarEntry fname =
   withEntries (\h -> when (headerFileType h == FTNormal &&
-                            headerFilePath h == fname) process)
+                            headerFilePath h == fname) tsvC)
 
-process :: (MonadThrow m) => ConduitT ByteString (G.Graph Int) m ()
-process = do
-  g <- parseTSV .|
-       C.map edgeP .|
-       accGraph
+
+tsvC :: (MonadThrow m) => ConduitT ByteString (G.Graph Int) m ()
+tsvC = do
+  g <- tsvSink
   yield g
+
+-- | Process chunks of a (uncompressed) TSV file and output the resulting graph
+--
+-- NB The TSV is assumed to have three columns, where the first two contain the node IDs of the edges
+tsvSink :: (MonadThrow m) => ConduitT ByteString o m (G.Graph Int)
+tsvSink = parseTSV .| C.map edgeP .| accGraph
 
 parseTSV :: MonadThrow m => ConduitT ByteString (Row Text) m ()
 parseTSV = intoCSV tsvSettings

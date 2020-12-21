@@ -2,6 +2,13 @@
 
 This package aims to collect some I/O utilities for `algebraic-graphs`, e.g. parsers and serializers for common graph data interchange formats.
 
-Currently it provides a parser for the GML format, which is used by a few common graph software packages (NetworkX, Gephi, graphviz, and others).
+Currently it provides parsers for the following formats :
+
+* GML : used by a few common graph software packages (NetworkX, Gephi, graphviz, and others)
+
+* .tsv : tab-separated list of edge data, used e.g. for the Graph Challenge dataset : https://graphchallenge.mit.edu/data-sets
+
+
+## Contributing
 
 PRs and contributions welcome!
