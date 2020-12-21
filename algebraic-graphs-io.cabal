@@ -1,7 +1,7 @@
 name:                algebraic-graphs-io
-version:             0.1.3.0
+version:             0.1.4.0
 synopsis:            I/O utilities for algebraic-graphs
-description:         I/O utilities for algebraic-graphs. Currently, parsers for the GML format.
+description:         I/O utilities for algebraic-graphs. Currently, parsers for the GML format. See README for details
 homepage:            https://github.com/ocramz/algebraic-graphs-io
 license:             BSD3
 license-file:        LICENSE
@@ -24,11 +24,13 @@ library
   ghc-options:         -Wall
   hs-source-dirs:      src
   exposed-modules:     Algebra.Graph.IO.GML
-                       Algebra.Graph.IO.Internal.Megaparsec
+                       Algebra.Graph.IO.Dot
                        Algebra.Graph.IO.Datasets
+  other-modules:       Algebra.Graph.IO.Internal.Megaparsec
   build-depends:       base >= 4.7 && < 5
                      , algebraic-graphs
                      , containers
+                     , dot
                      , megaparsec
                      , parser-combinators
                      , text

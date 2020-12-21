@@ -1,3 +1,9 @@
+* 0.1.4
+
+  Provide example datasets as `IO (Graph .. )` actions
+  
+  Hide Megaparsec helpers
+
 * 0.1.2
 
   Add "Les Miserables" and "Karate Club" datasets
