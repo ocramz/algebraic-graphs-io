@@ -9,6 +9,7 @@ import Data.Void (Void)
 -- megaparsec
 import Text.Megaparsec (Parsec, parseTest, satisfy, (<?>))
 import Text.Megaparsec.Char (space1)
+import Text.Megaparsec.Error (ParseErrorBundle)
 import qualified Text.Megaparsec.Char.Lexer as L
 -- parser-combinators
 import Control.Monad.Combinators (many, some, between)
@@ -16,6 +17,8 @@ import Control.Monad.Combinators (many, some, between)
 import Data.Text (Text)
 
 type Parser = Parsec Void Text
+
+type ParseE = ParseErrorBundle Text Void
 
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
