@@ -30,15 +30,19 @@ library
   other-modules:       Algebra.Graph.IO.Internal.Megaparsec
   build-depends:       base >= 4.7 && < 5
                      , algebraic-graphs
+                     , bytestring
                      , conduit
                      , conduit-extra
                      , containers
                      , csv-conduit
                      , dot
+                     , exceptions
                      , http-conduit
                      , megaparsec
                      , parser-combinators
+                     , primitive
                      , text
+                     , tar-conduit
 
 test-suite spec
   default-language:    Haskell2010
