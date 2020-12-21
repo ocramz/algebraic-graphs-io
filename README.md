@@ -9,6 +9,8 @@ Currently it provides parsers for the following formats :
 * .tsv : tab-separated list of edge data, used e.g. for the Graph Challenge dataset : https://graphchallenge.mit.edu/data-sets
 
 
+There are also pre-parsed example datasets ready for consumption in `Algebra.Graph.IO.Datasets`
+
 ## Contributing
 
 PRs and contributions welcome!
