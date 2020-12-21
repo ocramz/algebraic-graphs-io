@@ -2,6 +2,7 @@
 {-# options_ghc -Wno-unused-imports #-}
 module Algebra.Graph.IO.SV where
 
+import Data.Conduit (runConduit, ConduitT)
 import Data.CSV.Conduit (CSV(..), CSVSettings(..))
 
 -- | tab-separated values
