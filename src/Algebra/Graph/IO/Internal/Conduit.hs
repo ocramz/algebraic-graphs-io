@@ -1,4 +1,4 @@
-{-# options_ghc -Wno-unused-imports #-}
+{-# options_ghc -Wno-unused-imports -Wno-unused-top-binds #-}
 -- | Miscellaneous conduit-related functionality
 --
 -- Networking, compression

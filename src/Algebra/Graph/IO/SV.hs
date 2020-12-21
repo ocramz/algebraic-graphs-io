@@ -41,51 +41,8 @@ import Data.Text.Encoding (decodeUtf8)
 import Algebra.Graph.IO.Internal.Megaparsec (Parser, ParseE)
 import Algebra.Graph.IO.Internal.Conduit (unTarGz, fetch)
 
--- | tab-separated values
-tsvSettings :: CSVSettings
-tsvSettings = CSVSettings '\t' Nothing
 
 
-
-
-{-
-myProcessor :: Conduit (MapRow Text) m (MapRow Text)
-myProcessor = undefined
-
-test = runResourceT $ runConduit $
-  sourceFile "test/BigFile.csv" .|
-  intoCSV defCSVSettings .|
-  myProcessor .|
-  (writeHeaders defCSVSettings >> fromCSV defCSVSettings) .|
-  sinkFile "test/BigFileOut.csv"
--}
-
-test0 :: IO () -- (G.Graph Int)
-test0 = do
-  rq <- parseRequest "https://graphchallenge.s3.amazonaws.com/synthetic/partitionchallenge/static/simulated_blockmodel_graph_50_nodes.tar.gz"
-  runResourceT $ runConduit $
-    fetch rq .|
-    unTarGz .|
-    parseTarEntry fname .|
-    C.print
-    where
-      fname :: FilePath
-      fname = "simulated_blockmodel_graph_50_nodes.tsv"
-
-
--- | Parse a single file from a .tar archive
-parseTarEntry :: (MonadThrow m) =>
-                 FilePath -- ^ file in .tar archive
-              -> ConduitT TarChunk (G.Graph Int) m ()
-parseTarEntry fname =
-  withEntries (\h -> when (headerFileType h == FTNormal &&
-                            headerFilePath h == fname) tsvC)
-
-
-tsvC :: (MonadThrow m) => ConduitT ByteString (G.Graph Int) m ()
-tsvC = do
-  g <- tsvSink
-  yield g
 
 -- | Process chunks of a (uncompressed) TSV file and output the resulting graph
 --
@@ -110,3 +67,40 @@ accGraph = flip C.foldM G.empty $ \acc m ->
   case m of
     Just (Edge a b _) -> pure $ (a `G.edge` b) `G.overlay` acc
     Nothing -> pure acc
+
+-- | tab-separated values
+tsvSettings :: CSVSettings
+tsvSettings = CSVSettings '\t' Nothing
+
+
+
+-- playground
+
+
+
+-- test0 :: IO () -- (G.Graph Int)
+-- test0 = do
+--   rq <- parseRequest "https://graphchallenge.s3.amazonaws.com/synthetic/partitionchallenge/static/simulated_blockmodel_graph_50_nodes.tar.gz"
+--   runResourceT $ runConduit $
+--     fetch rq .|
+--     unTarGz .|
+--     parseTarEntry fname .|
+--     C.print
+--     where
+--       fname :: FilePath
+--       fname = "simulated_blockmodel_graph_50_nodes.tsv"
+
+
+-- -- | Parse a single file from a .tar archive
+-- parseTarEntry :: (MonadThrow m) =>
+--                  FilePath -- ^ file in .tar archive
+--               -> ConduitT TarChunk (G.Graph Int) m ()
+-- parseTarEntry fname =
+--   withEntries (\h -> when (headerFileType h == FTNormal &&
+--                             headerFilePath h == fname) tsvC)
+
+
+-- tsvC :: (MonadThrow m) => ConduitT ByteString (G.Graph Int) m ()
+-- tsvC = do
+--   g <- tsvSink
+--   yield g
