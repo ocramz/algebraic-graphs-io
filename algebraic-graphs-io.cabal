@@ -26,10 +26,12 @@ library
   exposed-modules:     Algebra.Graph.IO.GML
                        Algebra.Graph.IO.Dot
                        Algebra.Graph.IO.Datasets
+                       Algebra.Graph.IO.MatrixMarket
                        Algebra.Graph.IO.SV
   other-modules:       Algebra.Graph.IO.Internal.Megaparsec
   build-depends:       base >= 4.7 && < 5
                      , algebraic-graphs
+                     , attoparsec
                      , bytestring
                      , conduit
                      , conduit-extra
@@ -38,6 +40,7 @@ library
                      , dot
                      , exceptions
                      , http-conduit
+                     , matrix-market-attoparsec
                      , megaparsec
                      , parser-combinators
                      , primitive
