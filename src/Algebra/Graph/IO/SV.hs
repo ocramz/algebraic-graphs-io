@@ -67,7 +67,10 @@ test0 = do
     withEntries p .|
     C.print
     where
-      p h = when (headerFileType h == FTNormal) $ do -- (yield $ headerFilePath h)
+      fname :: FilePath
+      fname = "simulated_blockmodel_graph_50_nodes.tsv"
+      p h = when (headerFileType h == FTNormal &&
+                   headerFilePath h == fname) $ do
         process
 
 
@@ -88,7 +91,7 @@ data Edge a = Edge a a a deriving (Eq, Show)
 accGraph :: (Monad m) => ConduitT (Maybe (Edge a)) o m (G.Graph a)
 accGraph = flip C.foldM G.empty $ \acc m -> do
   case m of
-    Just (Edge a b _) -> pure $ acc `G.overlay` (a `G.edge` b)
+    Just (Edge a b _) -> pure $ (a `G.edge` b) `G.overlay` acc
     Nothing -> pure acc
 
 
