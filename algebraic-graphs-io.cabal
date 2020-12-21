@@ -16,6 +16,8 @@ extra-source-files:  README.md
                      assets/labeled.gml
                      assets/karate.gml
                      assets/lesmiserables.gml
+                     assets/simulated_blockmodel_graph_50_nodes_truePartition.tsv
+                     assets/simulated_blockmodel_graph_50_nodes.tsv
 cabal-version:       >=1.10
 tested-with:         GHC == 8.8.4
 
@@ -28,7 +30,8 @@ library
                        Algebra.Graph.IO.Datasets
                        Algebra.Graph.IO.MatrixMarket
                        Algebra.Graph.IO.SV
-  other-modules:       Algebra.Graph.IO.Internal.Megaparsec
+  other-modules:       Algebra.Graph.IO.Internal.Conduit
+                       Algebra.Graph.IO.Internal.Megaparsec
   build-depends:       base >= 4.7 && < 5
                      , algebraic-graphs
                      , attoparsec
