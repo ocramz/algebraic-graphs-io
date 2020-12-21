@@ -26,10 +26,13 @@ library
   exposed-modules:     Algebra.Graph.IO.GML
                        Algebra.Graph.IO.Dot
                        Algebra.Graph.IO.Datasets
+                       Algebra.Graph.IO.SV
   other-modules:       Algebra.Graph.IO.Internal.Megaparsec
   build-depends:       base >= 4.7 && < 5
                      , algebraic-graphs
+                     , conduit
                      , containers
+                     , csv-conduit
                      , dot
                      , megaparsec
                      , parser-combinators
