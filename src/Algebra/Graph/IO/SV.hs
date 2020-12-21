@@ -7,13 +7,13 @@ import Control.Monad.IO.Class (MonadIO(..))
 import Data.Void (Void)
 
 -- algebraic-graphs
-import qualified Algebra.Graph as G (Graph, edge, empty)
+import qualified Algebra.Graph as G (Graph, edge, empty, overlay)
 -- bytestring
 import Data.ByteString (ByteString)
 -- conduit
 import Conduit (MonadUnliftIO(..), MonadResource, runResourceT)
 import Data.Conduit (runConduit, ConduitT, (.|), yield)
-import qualified Data.Conduit.Combinators as C (print, sinkFile, map)
+import qualified Data.Conduit.Combinators as C (print, sinkFile, map, foldM)
 -- conduit-extra
 import Data.Conduit.Zlib (ungzip)
 -- csv-conduit
@@ -57,7 +57,7 @@ test = runResourceT $ runConduit $
   sinkFile "test/BigFileOut.csv"
 -}
 
-test0 :: IO ()
+test0 :: IO () -- (G.Graph Int)
 test0 = do
   rq <- parseRequest "https://graphchallenge.s3.amazonaws.com/synthetic/partitionchallenge/static/simulated_blockmodel_graph_50_nodes.tar.gz"
   runResourceT $ runConduit $
@@ -65,11 +65,10 @@ test0 = do
     ungzip .|
     untarChunks .|
     withEntries p .|
-    C.map edgeP .|
     C.print
     where
       p h = when (headerFileType h == FTNormal) $ do -- (yield $ headerFilePath h)
-        parseTSV
+        process
 
 
 parseTSV :: MonadThrow m => ConduitT ByteString (Row Text) m ()
@@ -84,3 +83,18 @@ edgeP t =
     Right _ -> Nothing
 
 data Edge a = Edge a a a deriving (Eq, Show)
+
+
+accGraph :: (Monad m) => ConduitT (Maybe (Edge a)) o m (G.Graph a)
+accGraph = flip C.foldM G.empty $ \acc m -> do
+  case m of
+    Just (Edge a b _) -> pure $ acc `G.overlay` (a `G.edge` b)
+    Nothing -> pure acc
+
+
+process :: (MonadThrow m) => ConduitT ByteString (G.Graph Int) m ()
+process = do
+  g <- parseTSV .|
+          C.map edgeP .|
+          accGraph
+  yield g
