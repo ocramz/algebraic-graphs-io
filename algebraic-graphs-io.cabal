@@ -35,6 +35,7 @@ library
                      , containers
                      , csv-conduit
                      , dot
+                     , http-conduit
                      , megaparsec
                      , parser-combinators
                      , text
