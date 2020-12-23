@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedStrings #-}
--- | Link-based datasets from http://www.cs.umd.edu/~sen/lbc-proj/LBC.html
+-- | Link-based datasets from https://linqs.soe.ucsc.edu/data
 {-# options_ghc -Wno-unused-imports -Wno-unused-top-binds #-}
 module Algebra.Graph.IO.Datasets.LINQS where
 
