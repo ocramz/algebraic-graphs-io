@@ -5,6 +5,7 @@
 module Algebra.Graph.IO.Internal.Conduit (fetchTarGz, unTarGz, fetch) where
 
 import Control.Monad (when)
+import Control.Monad.IO.Class (MonadIO(..))
 
 -- bytestring
 import Data.ByteString (ByteString)
@@ -16,10 +17,10 @@ import qualified Data.Conduit.Combinators as C (print, sourceFile, sinkFile, map
 import Data.Conduit.Zlib (ungzip)
 -- filepath
 import System.FilePath ((</>))
--- http-conduit
-import Network.HTTP.Simple (httpSource, getResponseBody, Response, Request, parseRequest, setRequestMethod)
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
+-- http-conduit
+import Network.HTTP.Simple (httpSource, getResponseBody, Response, Request, parseRequest, setRequestMethod)
 -- primitive
 import Control.Monad.Primitive (PrimMonad(..))
 -- tar-conduit

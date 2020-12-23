@@ -28,6 +28,7 @@ library
   exposed-modules:     Algebra.Graph.IO.GML
                        Algebra.Graph.IO.Dot
                        Algebra.Graph.IO.Datasets
+                       Algebra.Graph.IO.Datasets.LINQS
                        Algebra.Graph.IO.MatrixMarket
                        Algebra.Graph.IO.SV
                        Algebra.Graph.IO.Internal.Conduit

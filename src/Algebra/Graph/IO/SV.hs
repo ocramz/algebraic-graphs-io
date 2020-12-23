@@ -1,6 +1,7 @@
 {-# language OverloadedStrings #-}
 {-# options_ghc -Wno-unused-imports #-}
 module Algebra.Graph.IO.SV (
+  parseTSV, 
   tsvSink
   ) where
 
