@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# options_ghc -Wno-unused-imports -Wno-unused-top-binds #-}
-module Algebra.Graph.IO.Datasets.LINQS.Citeseer where
+module Algebra.Graph.IO.Datasets.LINQS.Citeseer (citeseerGraph, stash, ContentRow(..), CitesRow(..), DocClass(..)) where
 
 import Control.Applicative (Alternative(..))
 import Control.Monad (when, foldM)
@@ -11,6 +11,8 @@ import GHC.Generics (Generic(..))
 import GHC.Int (Int16)
 import Data.Functor (($>))
 
+-- algebraic-graphs
+import qualified Algebra.Graph as G (Graph, empty, overlay, edge)
 -- binary
 import Data.Binary (Binary(..), encode, decode, encodeFile, decodeFileOrFail)
 -- binary-conduit
@@ -21,10 +23,10 @@ import Data.ByteString.Char8 (unpack)
 -- conduit
 import Conduit (MonadUnliftIO(..), MonadResource, runResourceT)
 import Data.Conduit (runConduit, ConduitT, (.|), yield, await)
-import qualified Data.Conduit.Combinators as C (print, sourceFile, sinkFile, map, mapM, foldM, foldMap, foldMapM, mapWhile)
+import qualified Data.Conduit.Combinators as C (print, sourceFile, sinkFile, map, mapM, foldM, foldMap, foldl, foldMapM, mapWhile)
 -- containers
 import Data.Sequence (Seq, (|>))
-import qualified Data.Map as M (Map, singleton)
+import qualified Data.Map as M (Map, singleton, lookup)
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
 -- filepath
@@ -55,6 +57,9 @@ CiteSeer: The CiteSeer dataset consists of 3312 scientific publications classifi
 http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz
 -}
 
+-- | Download, parse, serialize and save the dataset to local storage.
+--
+-- Two binary files will be created under @.\/assets\/citeseer/@
 stash :: IO ()
 stash = do
   let path = "http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz"
@@ -62,15 +67,17 @@ stash = do
   runResourceT $ runConduit $
     fetch rq .|
     unTarGz .|
-    withFileInfo contentToFile
+    withFileInfo ( \fi -> do
+     contentToFile fi
+     citesToFile fi )
 
-restore :: IO ()
-restore = runResourceT $ runConduit $
+restoreContent :: IO (M.Map String (Seq Int16, DocClass))
+restoreContent = runResourceT $ runConduit $
   contentFromFile .|
-  C.print
+  C.foldMap ( \(CRow k fs c) -> M.singleton k (fs, c) )
 
 
--- document classes of the Citeseer dataset
+-- | document classes of the Citeseer dataset
 data DocClass = Agents | AI | DB | IR | ML | HCI deriving (Eq, Show, Generic, Binary)
 
 docClassP :: Parser DocClass
@@ -108,17 +115,17 @@ contentToFile fi = when ((takeExtension . unpack $ filePath fi) == ".content") $
               Left e -> error $ errorBundlePretty e
               Right x -> x ) .|
     CB.conduitEncode .|
-    C.sinkFile "citeseer-content"
+    C.sinkFile "assets/citeseer/content-z"
 
 contentFromFile :: (MonadResource m, MonadThrow m) => ConduitT i ContentRow m ()
 contentFromFile =
-  C.sourceFile "citeseer-content" .|
+  C.sourceFile "assets/citeseer/content-z" .|
   CB.conduitDecode
 
 -- | Dataset row of the .content file
 data ContentRow = CRow {
-  crId :: String
-  , crFeatures :: Seq Int16
+  crId :: String -- ^ identifier
+  , crFeatures :: Seq Int16 -- ^ features, in sparse format (without the zeros)
   , crClass :: DocClass
                    } deriving (Eq, Show, Generic, Binary)
 
@@ -149,24 +156,48 @@ The .cites file contains the citation graph of the corpus. Each line describes a
 Each line contains two paper IDs. The first entry is the ID of the paper being cited and the second ID stands for the paper which contains the citation. The direction of the link is from right to left. If a line is represented by "paper1 paper2" then the link is "paper2->paper1". 
 -}
 -- | only process the .cites file within the archive
-cites :: (MonadThrow io, MonadIO io) => ConduitT TarChunk o io ()
-cites = withFileInfo $ \fi ->
-  when ((takeExtension . unpack $ filePath fi) == ".cites") $
-    parseTSV .|
-    C.map T.unwords .|
-    C.map (parse citesRowP "") .|
-    C.print
 
-cites' fi = do
+citesToFile :: (MonadThrow m, MonadIO m, MonadResource m) =>
+               FileInfo -> ConduitT ByteString c m ()
+citesToFile fi = do
   let fpath = unpack $ filePath fi
   when (takeExtension fpath == ".cites") $
     parseTSV .|
     C.map T.unwords .|
-    C.map (parse citesRowP "") .|
-    -- C.sinkFile fpath
-    C.print
+    C.map ( \r -> case parse citesRowP "" r of
+              Left e -> error $ errorBundlePretty e
+              Right x -> x ) .|
+    CB.conduitEncode .|
+    C.sinkFile "assets/citeseer/cites"
 
-data CitesRow a = CitesRow { cirTo :: a, cirFrom :: a } deriving (Eq, Show)
+citesFromFile :: (MonadResource m, MonadThrow m) => ConduitT i (CitesRow String) m ()
+citesFromFile =
+  C.sourceFile "assets/citeseer/cites" .|
+  CB.conduitDecode
+
+-- | Reconstruct the citation graph
+--
+-- NB : relies on the user having `stash`ed the dataset to local disk first.
+citeseerGraph :: IO (G.Graph ContentRow)
+citeseerGraph = do
+  mm <- restoreContent
+  runResourceT $ runConduit $
+    citesFromFile .|
+    C.foldl (\gr (CitesRow b a) ->
+               let
+                 edm = (,) <$> M.lookup a mm <*> M.lookup b mm
+               in
+                 case edm of
+                   Nothing -> gr -- error $ show e
+                   Just ((bffs, bc), (affs, ac)) ->
+                     let
+                       acr = CRow a affs ac
+                       bcr = CRow b bffs bc
+                     in
+                       (acr `G.edge` bcr) `G.overlay` gr
+                ) G.empty
+
+data CitesRow a = CitesRow { cirTo :: a, cirFrom :: a } deriving (Eq, Show, Generic, Binary)
 
 citesRowP :: Parser (CitesRow String)
 citesRowP = CitesRow <$> lexeme alphaNum <*> lexeme alphaNum

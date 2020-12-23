@@ -1,16 +1,29 @@
 # algebraic-graphs-io
 
-This package aims to collect some I/O utilities for `algebraic-graphs`, e.g. parsers and serializers for common graph data interchange formats.
+This package collects I/O utilities for `algebraic-graphs` : parsers and serializers for common graph data interchange formats, as well as functionality for downloading and caching larger datasets.
 
-Currently it provides parsers for the following formats :
+## Formats
+
+Currently the following formats are supported :
 
 * GML : used by a few common graph software packages (NetworkX, Gephi, graphviz, and others)
 
-* .tsv : tab-separated list of edge data, used e.g. for the Graph Challenge dataset : https://graphchallenge.mit.edu/data-sets
+* .tsv : tab-separated list of edge data, used e.g. for the Graph Challenge dataset [1]
 
 
-There are also pre-parsed example datasets ready for consumption in `Algebra.Graph.IO.Datasets`
+## Datasets
+
+The package contains some small example datasets (e.g. "lesmiserables" and "karateclub"); these are provided ready for consumption in `Algebra.Graph.IO.Datasets`.
+
+There are also bindings to larger datasets, such as the ones provided by the LINQS group [2] (e.g. "citeseer").
+
 
 ## Contributing
 
 PRs and contributions welcome!
+
+
+## References
+
+[1] GraphChallenge https://graphchallenge.mit.edu/data-sets
+[2] LINQS http://www.cs.umd.edu/~sen/lbc-proj/LBC.html

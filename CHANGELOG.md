@@ -1,3 +1,7 @@
+* 0.1.5
+
+  Add Citeseer dataset
+
 * 0.1.4
 
   Add .tsv format and networking/decompression utilities

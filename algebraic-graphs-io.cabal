@@ -1,5 +1,5 @@
 name:                algebraic-graphs-io
-version:             0.1.4.0
+version:             0.1.5.0
 synopsis:            I/O utilities for algebraic-graphs
 description:         I/O utilities for algebraic-graphs. See README for details
 homepage:            https://github.com/ocramz/algebraic-graphs-io
