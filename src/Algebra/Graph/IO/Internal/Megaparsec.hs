@@ -36,4 +36,4 @@ sc = L.space
 anyString, alphaNum :: Parser String
 anyString = many (satisfy isAlpha)
 
-alphaNum = many (satisfy isAlphaNum)
+alphaNum = many (satisfy isAlphaNum) <?> "alphanumeric string"

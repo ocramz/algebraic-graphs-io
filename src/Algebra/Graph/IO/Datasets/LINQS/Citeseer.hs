@@ -1,3 +1,5 @@
+{-# language DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# options_ghc -Wno-unused-imports -Wno-unused-top-binds #-}
 module Algebra.Graph.IO.Datasets.LINQS.Citeseer where
@@ -5,9 +7,15 @@ module Algebra.Graph.IO.Datasets.LINQS.Citeseer where
 import Control.Applicative (Alternative(..))
 import Control.Monad (when, foldM)
 import Control.Monad.IO.Class (MonadIO(..))
+import GHC.Generics (Generic(..))
 import GHC.Int (Int16)
 import Data.Functor (($>))
 
+-- binary
+import Data.Binary (Binary(..), encodeFile, decodeFileOrFail)
+-- binary-conduit
+import Data.Conduit.Serialization.Binary (conduitDecode, conduitEncode, ParseError(..))
+-- bytestring
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (unpack)
 -- conduit
@@ -23,7 +31,7 @@ import System.FilePath ((</>), takeFileName, takeExtension)
 -- http-conduit
 import Network.HTTP.Simple (httpSource, getResponseBody, Response, Request, parseRequest, setRequestMethod)
 -- megaparsec
-import Text.Megaparsec (parse, parseTest)
+import Text.Megaparsec (parse, parseTest, (<?>))
 import Text.Megaparsec.Char (char)
 import Text.Megaparsec.Char.Lexer (decimal)
 -- parser.combinators
@@ -57,7 +65,7 @@ citeseer = do
 
 
 -- document classes of the Citeseer dataset
-data DocClass = Agents | AI | DB | IR | ML | HCI deriving (Eq, Show)
+data DocClass = Agents | AI | DB | IR | ML | HCI deriving (Eq, Show, Generic, Binary)
 
 docClassP :: Parser DocClass
 docClassP =
@@ -80,17 +88,17 @@ The first entry in each line contains the unique string ID of the paper followed
 content :: (MonadThrow io, MonadIO io) => ConduitT TarChunk o io ()
 content = withFileInfo $ \fi ->
   when ((takeExtension . unpack $ filePath fi) == ".content") $
-  parseTSV .|
-  C.map T.unwords .|
-  C.map (parse contentRowP "") .|
-  C.print
+    parseTSV .|
+    C.map T.unwords .|
+    C.map (parse contentRowP "") .|
+    C.print
 
 -- | Dataset row of the .content file
-data ContentRow a = CRow {
-  crId :: a
+data ContentRow = CRow {
+  crId :: String
   , crFeatures :: Seq Int16
   , crClass :: DocClass
-                   } deriving (Eq, Show)
+                   } deriving (Eq, Show, Generic, Binary)
 
 bit :: Parser Bool
 bit = (char '0' $> False) <|> (char '1' $> True)
@@ -98,7 +106,7 @@ bit = (char '0' $> False) <|> (char '1' $> True)
 sparse :: Foldable t => t Bool -> Seq Int16
 sparse = fst . foldl (\(acc, i) b -> if b then (acc |> i, succ i) else (acc, succ i)) (mempty, 0)
 
-contentRowP :: Parser (ContentRow String)
+contentRowP :: Parser ContentRow
 contentRowP = do
   i <- lexeme alphaNum
   let n = 3703
@@ -122,10 +130,19 @@ Each line contains two paper IDs. The first entry is the ID of the paper being c
 cites :: (MonadThrow io, MonadIO io) => ConduitT TarChunk o io ()
 cites = withFileInfo $ \fi ->
   when ((takeExtension . unpack $ filePath fi) == ".cites") $
-  parseTSV .|
-  C.map T.unwords .|
-  C.map (parse citesRowP "") .|
-  C.print
+    parseTSV .|
+    C.map T.unwords .|
+    C.map (parse citesRowP "") .|
+    C.print
+
+cites' fi = do
+  let fpath = unpack $ filePath fi
+  when (takeExtension fpath == ".cites") $
+    parseTSV .|
+    C.map T.unwords .|
+    C.map (parse citesRowP "") .|
+    -- C.sinkFile fpath
+    C.print
 
 data CitesRow a = CitesRow { cirTo :: a, cirFrom :: a } deriving (Eq, Show)
 

@@ -39,6 +39,7 @@ library
                      , algebraic-graphs
                      , attoparsec
                      , binary
+                     , binary-conduit
                      , bytestring
                      , conduit
                      , conduit-extra
