@@ -26,4 +26,5 @@ PRs and contributions welcome!
 ## References
 
 [1] GraphChallenge https://graphchallenge.mit.edu/data-sets
-[2] LINQS http://www.cs.umd.edu/~sen/lbc-proj/LBC.html
+
+[2] LINQS https://linqs.soe.ucsc.edu/data

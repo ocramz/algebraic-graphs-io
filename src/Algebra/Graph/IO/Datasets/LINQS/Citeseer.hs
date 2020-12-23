@@ -2,6 +2,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# options_ghc -Wno-unused-imports -Wno-unused-top-binds #-}
+-- | Citeseer document classification dataset, from :
+--
+-- Qing Lu, and Lise Getoor. "Link-based classification." ICML, 2003.
+--
+-- https://linqs.soe.ucsc.edu/data
 module Algebra.Graph.IO.Datasets.LINQS.Citeseer (citeseerGraph, stash, ContentRow(..), DocClass(..)) where
 
 import Control.Applicative (Alternative(..))

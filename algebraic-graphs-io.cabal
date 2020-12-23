@@ -1,14 +1,14 @@
 name:                algebraic-graphs-io
-version:             0.1.5.0
-synopsis:            I/O utilities for algebraic-graphs
-description:         I/O utilities for algebraic-graphs. See README for details
+version:             0.1.5.1
+synopsis:            I/O utilities and datasets for algebraic-graphs
+description:         I/O utilities and datasets for algebraic-graphs. See README for details
 homepage:            https://github.com/ocramz/algebraic-graphs-io
 license:             BSD3
 license-file:        LICENSE
 author:              Marco Zocca
 maintainer:          ocramz
 copyright:           2020-2021 ocramz
-category:            Graphs, Parsing
+category:            Graphs, Parsing, Data Mining
 build-type:          Simple
 extra-source-files:  README.md
                      CHANGELOG.md
