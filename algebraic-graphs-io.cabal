@@ -29,6 +29,7 @@ library
                        Algebra.Graph.IO.Dot
                        Algebra.Graph.IO.Datasets
                        Algebra.Graph.IO.Datasets.LINQS
+                       Algebra.Graph.IO.Datasets.LINQS.Citeseer
                        Algebra.Graph.IO.MatrixMarket
                        Algebra.Graph.IO.SV
                        Algebra.Graph.IO.Internal.Conduit
@@ -52,6 +53,7 @@ library
                      , primitive
                      , text
                      , tar-conduit
+                     , vector
 
 test-suite spec
   default-language:    Haskell2010

@@ -3,7 +3,7 @@
 module Algebra.Graph.IO.Internal.Megaparsec where
 
 import Control.Applicative hiding (many, some)
-import Data.Char (isAlpha, isSpace)
+import Data.Char (isAlpha, isSpace, isAlphaNum)
 import Data.Void (Void)
 
 -- megaparsec
@@ -33,5 +33,7 @@ sc = L.space
      (L.skipLineComment "//")
      (L.skipBlockComment "/*" "*/")
 
-anyString :: Parser String
+anyString, alphaNum :: Parser String
 anyString = many (satisfy isAlpha)
+
+alphaNum = many (satisfy isAlphaNum)

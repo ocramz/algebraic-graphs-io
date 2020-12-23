@@ -19,6 +19,11 @@ import Control.Monad.Catch (MonadThrow(..))
 import System.FilePath ((</>), takeFileName, takeExtension)
 -- http-conduit
 import Network.HTTP.Simple (httpSource, getResponseBody, Response, Request, parseRequest, setRequestMethod)
+-- megaparsec
+import Text.Megaparsec (parse)
+import Text.Megaparsec.Char.Lexer (decimal)
+-- parser.combinators
+import Control.Monad.Combinators (count)
 -- primitive
 import Control.Monad.Primitive (PrimMonad(..))
 -- tar-conduit
@@ -40,17 +45,3 @@ WebKB: The WebKB dataset consists of 877 scientific publications classified into
 http://www.cs.umd.edu/~sen/lbc-proj/data/WebKB.tgz
 
 -}
-
-citeseer :: IO ()
-citeseer = do
-  let path = "http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz"
-  rq <- parseRequest path
-  runResourceT $ runConduit $
-    fetch rq .|
-    unTarGz .|
-    cites
-
--- | only process the .cites file within the archive
-cites :: (MonadThrow io, MonadIO io) => ConduitT TarChunk o io ()
-cites = withFileInfo $ \fi ->
-  when ((takeExtension . unpack $ filePath fi) == ".cites") $ parseTSV .| C.print
