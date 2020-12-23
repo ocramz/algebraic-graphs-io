@@ -135,10 +135,10 @@ citesRowP = CitesRow <$> lexeme alphaNum <*> lexeme alphaNum
 
 -- test
 
--- | one row of the .content file
---
--- λ> content0
--- CRow {crId = "100157", crFeatures = fromList [36,46,65,215,261,565,1162,1508,1613,1641,1662,1797,1842,1988,2025,2399,2456,2521,2597,2618,2641,2902,3016,3050,3163,3268,3272,3287,3411,3447,3669], crClass = Agents}
-content0 = do
-  t <- T.readFile "src/Algebra/Graph/IO/Datasets/LINQS/c0"
-  parseTest contentRowP t
+-- -- | one row of the .content file
+-- --
+-- -- λ> content0
+-- -- CRow {crId = "100157", crFeatures = fromList [36,46,65,215,261,565,1162,1508,1613,1641,1662,1797,1842,1988,2025,2399,2456,2521,2597,2618,2641,2902,3016,3050,3163,3268,3272,3287,3411,3447,3669], crClass = Agents}
+-- content0 = do
+--   t <- T.readFile "src/Algebra/Graph/IO/Datasets/LINQS/c0"
+--   parseTest contentRowP t

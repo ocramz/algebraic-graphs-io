@@ -38,6 +38,7 @@ library
   build-depends:       base >= 4.7 && < 5
                      , algebraic-graphs
                      , attoparsec
+                     , binary
                      , bytestring
                      , conduit
                      , conduit-extra
