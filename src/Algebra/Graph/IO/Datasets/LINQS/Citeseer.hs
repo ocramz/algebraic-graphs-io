@@ -12,18 +12,19 @@ import GHC.Int (Int16)
 import Data.Functor (($>))
 
 -- binary
-import Data.Binary (Binary(..), encodeFile, decodeFileOrFail)
+import Data.Binary (Binary(..), encode, decode, encodeFile, decodeFileOrFail)
 -- binary-conduit
-import Data.Conduit.Serialization.Binary (conduitDecode, conduitEncode, ParseError(..))
+import qualified Data.Conduit.Serialization.Binary as CB (conduitDecode, conduitEncode, ParseError(..))
 -- bytestring
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (unpack)
 -- conduit
 import Conduit (MonadUnliftIO(..), MonadResource, runResourceT)
 import Data.Conduit (runConduit, ConduitT, (.|), yield, await)
-import qualified Data.Conduit.Combinators as C (print, sourceFile, sinkFile, map, mapM, foldM, mapWhile)
+import qualified Data.Conduit.Combinators as C (print, sourceFile, sinkFile, map, mapM, foldM, foldMap, foldMapM, mapWhile)
 -- containers
 import Data.Sequence (Seq, (|>))
+import qualified Data.Map as M (Map, singleton)
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
 -- filepath
@@ -34,6 +35,7 @@ import Network.HTTP.Simple (httpSource, getResponseBody, Response, Request, pars
 import Text.Megaparsec (parse, parseTest, (<?>))
 import Text.Megaparsec.Char (char)
 import Text.Megaparsec.Char.Lexer (decimal)
+import Text.Megaparsec.Error (errorBundlePretty)
 -- parser.combinators
 import Control.Monad.Combinators (count)
 -- primitive
@@ -53,15 +55,19 @@ CiteSeer: The CiteSeer dataset consists of 3312 scientific publications classifi
 http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz
 -}
 
-citeseer :: IO ()
-citeseer = do
+stash :: IO ()
+stash = do
   let path = "http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz"
   rq <- parseRequest path
   runResourceT $ runConduit $
     fetch rq .|
     unTarGz .|
-    content
+    withFileInfo contentToFile
 
+restore :: IO ()
+restore = runResourceT $ runConduit $
+  contentFromFile .|
+  C.print
 
 
 -- document classes of the Citeseer dataset
@@ -92,6 +98,22 @@ content = withFileInfo $ \fi ->
     C.map T.unwords .|
     C.map (parse contentRowP "") .|
     C.print
+
+contentToFile :: (MonadThrow m, MonadResource m) =>
+                 FileInfo -> ConduitT ByteString c m ()
+contentToFile fi = when ((takeExtension . unpack $ filePath fi) == ".content") $ do
+  parseTSV .|
+    C.map T.unwords .|
+    C.map ( \r -> case parse contentRowP "" r of
+              Left e -> error $ errorBundlePretty e
+              Right x -> x ) .|
+    CB.conduitEncode .|
+    C.sinkFile "citeseer-content"
+
+contentFromFile :: (MonadResource m, MonadThrow m) => ConduitT i ContentRow m ()
+contentFromFile =
+  C.sourceFile "citeseer-content" .|
+  CB.conduitDecode
 
 -- | Dataset row of the .content file
 data ContentRow = CRow {
