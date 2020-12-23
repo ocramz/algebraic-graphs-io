@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# options_ghc -Wno-unused-imports -Wno-unused-top-binds #-}
-module Algebra.Graph.IO.Datasets.LINQS.Citeseer (citeseerGraph, stash, ContentRow(..), CitesRow(..), DocClass(..)) where
+module Algebra.Graph.IO.Datasets.LINQS.Citeseer (citeseerGraph, stash, ContentRow(..), DocClass(..)) where
 
 import Control.Applicative (Alternative(..))
 import Control.Monad (when, foldM)
