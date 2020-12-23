@@ -3,7 +3,7 @@
 module Algebra.Graph.IO.Datasets.LINQS.Citeseer where
 
 import Control.Applicative (Alternative(..))
-import Control.Monad (when)
+import Control.Monad (when, foldM)
 import Control.Monad.IO.Class (MonadIO(..))
 import GHC.Int (Int16)
 import Data.Functor (($>))
@@ -33,7 +33,7 @@ import Control.Monad.Primitive (PrimMonad(..))
 -- tar-conduit
 import Data.Conduit.Tar (Header(..), untarChunks, TarChunk, withEntries, FileInfo, filePath, withFileInfo, headerFileType, FileType(..), headerFilePath)
 -- text
-import Data.Text (Text)
+import qualified Data.Text as T (Text, unwords)
 import qualified Data.Text.IO as T (readFile)
 
 import Algebra.Graph.IO.Internal.Conduit (fetch, unTarGz)
@@ -52,7 +52,7 @@ citeseer = do
   runResourceT $ runConduit $
     fetch rq .|
     unTarGz .|
-    cites
+    content
 
 
 
@@ -76,8 +76,17 @@ The .content file contains descriptions of the papers in the following format:
 The first entry in each line contains the unique string ID of the paper followed by binary values indicating whether each word in the vocabulary is present (indicated by 1) or absent (indicated by 0) in the paper (vocabulary : 3703 unique words). Finally, the last entry in the line contains the class label of the paper.
 -}
 
+-- | only process the .content file within the archive
+content :: (MonadThrow io, MonadIO io) => ConduitT TarChunk o io ()
+content = withFileInfo $ \fi ->
+  when ((takeExtension . unpack $ filePath fi) == ".content") $
+  parseTSV .|
+  C.map T.unwords .|
+  C.map (parse contentRowP "") .|
+  C.print
+
 -- | Dataset row of the .content file
-data CRow a = CRow {
+data ContentRow a = CRow {
   crId :: a
   , crFeatures :: Seq Int16
   , crClass :: DocClass
@@ -89,8 +98,8 @@ bit = (char '0' $> False) <|> (char '1' $> True)
 sparse :: Foldable t => t Bool -> Seq Int16
 sparse = fst . foldl (\(acc, i) b -> if b then (acc |> i, succ i) else (acc, succ i)) (mempty, 0)
 
-cRowP :: Parser (CRow String)
-cRowP = do
+contentRowP :: Parser (ContentRow String)
+contentRowP = do
   i <- lexeme alphaNum
   let n = 3703
   foh <- count n (lexeme bit) -- one-hot encoded features
@@ -114,8 +123,14 @@ cites :: (MonadThrow io, MonadIO io) => ConduitT TarChunk o io ()
 cites = withFileInfo $ \fi ->
   when ((takeExtension . unpack $ filePath fi) == ".cites") $
   parseTSV .|
+  C.map T.unwords .|
+  C.map (parse citesRowP "") .|
   C.print
 
+data CitesRow a = CitesRow { cirTo :: a, cirFrom :: a } deriving (Eq, Show)
+
+citesRowP :: Parser (CitesRow String)
+citesRowP = CitesRow <$> lexeme alphaNum <*> lexeme alphaNum
 
 
 -- test
@@ -126,4 +141,4 @@ cites = withFileInfo $ \fi ->
 -- CRow {crId = "100157", crFeatures = fromList [36,46,65,215,261,565,1162,1508,1613,1641,1662,1797,1842,1988,2025,2399,2456,2521,2597,2618,2641,2902,3016,3050,3163,3268,3272,3287,3411,3447,3669], crClass = Agents}
 content0 = do
   t <- T.readFile "src/Algebra/Graph/IO/Datasets/LINQS/c0"
-  parseTest cRowP t
+  parseTest contentRowP t
