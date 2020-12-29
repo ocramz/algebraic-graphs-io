@@ -67,7 +67,6 @@ import Algebra.Graph.IO.SV (parseTSV)
 import qualified Algebra.Graph.IO.Datasets.LINQS as DL (stash, sourceGraphEdges, loadGraph, restoreContent, CitesRow(..), ContentRow(..))
 {-
 CiteSeer: The CiteSeer dataset consists of 3312 scientific publications classified into one of six classes. The citation network consists of 4732 links. Each publication in the dataset is described by a 0/1-valued word vector indicating the absence/presence of the corresponding word from the dictionary. The dictionary consists of 3703 unique words. The README file in the dataset provides more details.
-http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz
 -}
 
 stash :: FilePath -- ^ directory where the data files will be saved

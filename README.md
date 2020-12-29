@@ -15,7 +15,7 @@ Currently the following formats are supported :
 
 The package contains some small example datasets (e.g. "lesmiserables" and "karateclub"); these are provided ready for consumption in `Algebra.Graph.IO.Datasets`.
 
-There are also bindings to larger datasets, such as the ones provided by the LINQS group [2] (e.g. "citeseer").
+There are also bindings to larger datasets, such as the ones provided by the LINQS group [2] (e.g. "citeseer" and "cora").
 
 
 ## Contributing

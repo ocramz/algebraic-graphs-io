@@ -1,3 +1,7 @@
+* 0.3
+
+  Add Cora dataset
+
 * 0.2
 
   Citeseer dataset : 

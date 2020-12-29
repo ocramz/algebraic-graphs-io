@@ -82,7 +82,6 @@ stash :: (Binary c) =>
       -> Parser c -- ^ document class
       -> IO ()
 stash dir uri n pc = do
-  -- let path = "http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz"
   rq <- parseRequest uri
   createDirectoryIfMissing True dir
   runResourceT $ runConduit $

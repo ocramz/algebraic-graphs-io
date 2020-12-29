@@ -6,6 +6,7 @@ module Algebra.Graph.IO.Internal.Conduit (fetchTarGz, unTarGz, fetch) where
 
 import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO(..))
+import Data.Function ((&))
 
 -- bytestring
 import Data.ByteString (ByteString)
@@ -20,7 +21,7 @@ import System.FilePath ((</>))
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
 -- http-conduit
-import Network.HTTP.Simple (httpSource, getResponseBody, Response, Request, parseRequest, setRequestMethod)
+import Network.HTTP.Simple (httpSource, getResponseBody, Response, Request, parseRequest, setRequestMethod, setRequestSecure)
 -- primitive
 import Control.Monad.Primitive (PrimMonad(..))
 -- tar-conduit
@@ -34,7 +35,7 @@ unTarGz = ungzip .|
 
 -- | Download a file
 fetch :: MonadResource m => Request -> ConduitT i ByteString m ()
-fetch r = httpSource r getResponseBody
+fetch r = httpSource (r & setRequestSecure False) getResponseBody
 
 -- | Download, decompress and save a .tar.gz archive
 fetchTarGz :: String -- ^ URL with the .tar.gz
