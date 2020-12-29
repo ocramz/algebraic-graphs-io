@@ -9,7 +9,12 @@
 -- Qing Lu, and Lise Getoor. "Link-based classification." ICML, 2003.
 --
 -- https://linqs.soe.ucsc.edu/data
-module Algebra.Graph.IO.Datasets.LINQS.Cora where
+module Algebra.Graph.IO.Datasets.LINQS.Cora (
+    -- * 1. Download the dataset
+  stash
+  -- * 2. Reconstruct the citation graph
+  , sourceCoraGraphEdges, loadCoraGraph
+                                            ) where
 
 import Control.Applicative (Alternative(..))
 import Control.Monad (when, foldM)
@@ -59,6 +64,8 @@ import qualified Data.Text.IO as T (readFile)
 
 import Algebra.Graph.IO.Internal.Megaparsec (Parser, ParseE, symbol, lexeme, alphaNum)
 
+import qualified Algebra.Graph.IO.Datasets.LINQS as DL (stash, sourceGraphEdges, loadGraph, restoreContent, CitesRow(..), ContentRow(..))
+
 {-
 The Cora dataset consists of Machine Learning papers. These papers are classified into one of the following seven classes:
 		Case_Based
@@ -70,6 +77,7 @@ The Cora dataset consists of Machine Learning papers. These papers are classifie
 		Theory
 -}
 
+-- | document classes of the Cora dataset
 data DocClass = CB | GA | NN | PM | RL | RuL | Th deriving (Eq, Show, Ord, Enum, Generic, Binary)
 
 docClassP :: Parser DocClass
@@ -86,6 +94,24 @@ docClassP =
 The papers were selected in a way such that in the final corpus every paper cites or is cited by atleast one other paper. There are 2708 papers in the whole corpus. 
 
 After stemming and removing stopwords we were left with a vocabulary of size 1433 unique words. All words with document frequency less than 10 were removed.
+-}
+
+stash :: FilePath -> IO ()
+stash fp = DL.stash fp "http://www.cs.umd.edu/~sen/lbc-proj/data/cora.tgz" 1433 docClassP
+
+sourceCoraGraphEdges :: (MonadResource m, MonadThrow m) =>
+                      FilePath -- ^ directory of data files
+                   -> M.Map String (Seq Int16, DocClass) -- ^ 'content' data
+                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow DocClass))) m ()
+sourceCoraGraphEdges = DL.sourceGraphEdges
+
+loadCoraGraph :: FilePath -- ^ directory where the data files were saved
+                  -> IO (G.Graph (DL.ContentRow DocClass))
+loadCoraGraph = DL.loadGraph
+
+
+
+{-
 
 
 THE DIRECTORY CONTAINS TWO FILES:
