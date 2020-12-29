@@ -14,6 +14,8 @@ module Algebra.Graph.IO.Datasets.LINQS.Cora (
   stash
   -- * 2. Reconstruct the citation graph
   , sourceCoraGraphEdges, loadCoraGraph
+  -- * Types
+  , CoraDoc(..)
                                             ) where
 
 import Control.Applicative (Alternative(..))
@@ -78,9 +80,9 @@ The Cora dataset consists of Machine Learning papers. These papers are classifie
 -}
 
 -- | document classes of the Cora dataset
-data DocClass = CB | GA | NN | PM | RL | RuL | Th deriving (Eq, Show, Ord, Enum, Generic, Binary)
+data CoraDoc = CB | GA | NN | PM | RL | RuL | Th deriving (Eq, Show, Ord, Enum, Generic, Binary)
 
-docClassP :: Parser DocClass
+docClassP :: Parser CoraDoc
 docClassP =
   (symbol "Case_Based" $> CB) <|>
   (symbol "Genetic_Algorithms" $> GA) <|>
@@ -99,14 +101,16 @@ After stemming and removing stopwords we were left with a vocabulary of size 143
 stash :: FilePath -> IO ()
 stash fp = DL.stash fp "http://www.cs.umd.edu/~sen/lbc-proj/data/cora.tgz" 1433 docClassP
 
+-- | See `DL.sourceGraphEdges`
 sourceCoraGraphEdges :: (MonadResource m, MonadThrow m) =>
                       FilePath -- ^ directory of data files
-                   -> M.Map String (Seq Int16, DocClass) -- ^ 'content' data
-                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow DocClass))) m ()
+                   -> M.Map String (Seq Int16, CoraDoc) -- ^ 'content' data
+                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow CoraDoc))) m ()
 sourceCoraGraphEdges = DL.sourceGraphEdges
 
+-- | See `DL.loadGraph`
 loadCoraGraph :: FilePath -- ^ directory where the data files were saved
-                  -> IO (G.Graph (DL.ContentRow DocClass))
+                  -> IO (G.Graph (DL.ContentRow CoraDoc))
 loadCoraGraph = DL.loadGraph
 
 

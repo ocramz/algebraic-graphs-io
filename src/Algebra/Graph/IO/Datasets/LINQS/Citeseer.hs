@@ -13,7 +13,7 @@ module Algebra.Graph.IO.Datasets.LINQS.Citeseer (
   -- * 2. Reconstruct the citation graph
   , sourceCiteseerGraphEdges, loadCiteseerGraph
   -- * Types
-    ,DocClass(..)) where
+    ,CiteSeerDoc(..)) where
 
 import Control.Applicative (Alternative(..))
 import Control.Monad (when, foldM)
@@ -73,22 +73,23 @@ stash :: FilePath -- ^ directory where the data files will be saved
       -> IO ()
 stash fp = DL.stash fp "http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz" 3703 docClassP
 
-
+-- | See `DL.sourceGraphEdges`
 sourceCiteseerGraphEdges :: (MonadResource m, MonadThrow m) =>
                       FilePath -- ^ directory of data files
-                   -> M.Map String (Seq Int16, DocClass) -- ^ 'content' data
-                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow DocClass))) m ()
+                   -> M.Map String (Seq Int16, CiteSeerDoc) -- ^ 'content' data
+                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow CiteSeerDoc))) m ()
 sourceCiteseerGraphEdges = DL.sourceGraphEdges
 
+-- | See `DL.loadGraph`
 loadCiteseerGraph :: 
                      FilePath -- ^ directory where the data files were saved
-                  -> IO (G.Graph (DL.ContentRow DocClass))
+                  -> IO (G.Graph (DL.ContentRow CiteSeerDoc))
 loadCiteseerGraph = DL.loadGraph
 
 -- | document classes of the Citeseer dataset
-data DocClass = Agents | AI | DB | IR | ML | HCI deriving (Eq, Ord, Enum, Show, Generic, Binary)
+data CiteSeerDoc = Agents | AI | DB | IR | ML | HCI deriving (Eq, Ord, Enum, Show, Generic, Binary)
 
-docClassP :: Parser DocClass
+docClassP :: Parser CiteSeerDoc
 docClassP =
   (symbol "Agents" $> Agents) <|>
   (symbol "AI" $> AI) <|>
