@@ -1,6 +1,9 @@
 {-# language OverloadedStrings #-}
 {-# options_ghc -Wno-unused-imports #-}
-module Algebra.Graph.IO.Internal.Megaparsec where
+module Algebra.Graph.IO.Internal.Megaparsec (Parser, ParseE,
+                                            -- * Internal
+                                            lexeme, symbol, anyString, alphaNum
+                                            ) where
 
 import Control.Applicative hiding (many, some)
 import Data.Char (isAlpha, isSpace, isAlphaNum)
@@ -20,13 +23,16 @@ type Parser = Parsec Void Text
 
 type ParseE = ParseErrorBundle Text Void
 
-lexeme :: Parser a -> Parser a
+lexeme :: Parser a -- ^ disregard any whitespace around this parser
+       -> Parser a
 lexeme = L.lexeme sc
 
-symbol :: Text -> Parser Text
+-- | Match a string
+symbol :: Text
+       -> Parser Text
 symbol = L.symbol sc
 
--- space consumer
+-- | space consumer
 sc :: Parser ()
 sc = L.space
      space1
