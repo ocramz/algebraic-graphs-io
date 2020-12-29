@@ -1,3 +1,11 @@
+* 0.2
+
+  Citeseer dataset : 
+  
+  - add Ord instances
+  - user can now specify data storage directory
+  - add streaming interface
+
 * 0.1.5
 
   Add Citeseer dataset

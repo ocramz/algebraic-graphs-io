@@ -7,7 +7,13 @@
 -- Qing Lu, and Lise Getoor. "Link-based classification." ICML, 2003.
 --
 -- https://linqs.soe.ucsc.edu/data
-module Algebra.Graph.IO.Datasets.LINQS.Citeseer (citeseerGraph, stash, ContentRow(..), DocClass(..)) where
+module Algebra.Graph.IO.Datasets.LINQS.Citeseer (
+  -- * 1. Download the dataset
+  stash
+  -- * 2. Reconstruct the citation graph
+  , citeseerGraph, citeseerGraphEdges, restoreContent,
+    -- * Types
+    ContentRow(..), DocClass(..)) where
 
 import Control.Applicative (Alternative(..))
 import Control.Monad (when, foldM)
@@ -32,6 +38,8 @@ import qualified Data.Conduit.Combinators as C (print, sourceFile, sinkFile, map
 -- containers
 import Data.Sequence (Seq, (|>))
 import qualified Data.Map as M (Map, singleton, lookup)
+-- directory
+import System.Directory (createDirectoryIfMissing)
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
 -- filepath
@@ -62,28 +70,30 @@ CiteSeer: The CiteSeer dataset consists of 3312 scientific publications classifi
 http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz
 -}
 
--- | Download, parse, serialize and save the dataset to local storage.
---
--- Two binary files will be created under @.\/assets\/citeseer/@
-stash :: IO ()
-stash = do
+-- | Download, parse, serialize and save the dataset to local storage
+stash :: FilePath -- ^ directory where the data files will be saved
+      -> IO ()
+stash dir = do
   let path = "http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz"
   rq <- parseRequest path
+  createDirectoryIfMissing True dir
   runResourceT $ runConduit $
     fetch rq .|
     unTarGz .|
     withFileInfo ( \fi -> do
-     contentToFile fi
-     citesToFile fi )
+     contentToFile dir fi
+     citesToFile dir fi )
 
-restoreContent :: IO (M.Map String (Seq Int16, DocClass))
-restoreContent = runResourceT $ runConduit $
-  contentFromFile .|
+-- | Load the graph node data from local storage
+restoreContent :: FilePath -- ^ directory where the data files are saved
+               -> IO (M.Map String (Seq Int16, DocClass))
+restoreContent dir = runResourceT $ runConduit $
+  contentFromFile dir .|
   C.foldMap ( \(CRow k fs c) -> M.singleton k (fs, c) )
 
 
 -- | document classes of the Citeseer dataset
-data DocClass = Agents | AI | DB | IR | ML | HCI deriving (Eq, Show, Generic, Binary)
+data DocClass = Agents | AI | DB | IR | ML | HCI deriving (Eq, Ord, Enum, Show, Generic, Binary)
 
 docClassP :: Parser DocClass
 docClassP =
@@ -95,11 +105,7 @@ docClassP =
   (symbol "HCI" $> HCI)
 
 {-
-The .content file contains descriptions of the papers in the following format:
 
-		<paper_id> <word_attributes>+ <class_label>
-
-The first entry in each line contains the unique string ID of the paper followed by binary values indicating whether each word in the vocabulary is present (indicated by 1) or absent (indicated by 0) in the paper (vocabulary : 3703 unique words). Finally, the last entry in the line contains the class label of the paper.
 -}
 
 -- | only process the .content file within the archive
@@ -112,27 +118,33 @@ content = withFileInfo $ \fi ->
     C.print
 
 contentToFile :: (MonadThrow m, MonadResource m) =>
-                 FileInfo -> ConduitT ByteString c m ()
-contentToFile fi = when ((takeExtension . unpack $ filePath fi) == ".content") $ do
+                 FilePath -> FileInfo -> ConduitT ByteString c m ()
+contentToFile dir fi = when ((takeExtension . unpack $ filePath fi) == ".content") $ do
   parseTSV .|
     C.map T.unwords .|
     C.map ( \r -> case parse contentRowP "" r of
               Left e -> error $ errorBundlePretty e
               Right x -> x ) .|
     CB.conduitEncode .|
-    C.sinkFile "assets/citeseer/content-z"
+    C.sinkFile (dir </> "content-z")
 
-contentFromFile :: (MonadResource m, MonadThrow m) => ConduitT i ContentRow m ()
-contentFromFile =
-  C.sourceFile "assets/citeseer/content-z" .|
+contentFromFile :: (MonadResource m, MonadThrow m) => FilePath -> ConduitT i ContentRow m ()
+contentFromFile dir =
+  C.sourceFile (dir </> "content-z") .|
   CB.conduitDecode
 
 -- | Dataset row of the .content file
+--
+-- The .content file contains descriptions of the papers in the following format:
+--
+-- 		\<paper_id\> \<word_attributes\> \<class_label\>
+--
+-- The first entry in each line contains the unique string ID of the paper followed by binary values indicating whether each word in the vocabulary is present (indicated by 1) or absent (indicated by 0) in the paper (vocabulary : 3703 unique words). Finally, the last entry in the line contains the class label of the paper.
 data ContentRow = CRow {
   crId :: String -- ^ identifier
   , crFeatures :: Seq Int16 -- ^ features, in sparse format (without the zeros)
-  , crClass :: DocClass
-                   } deriving (Eq, Show, Generic, Binary)
+  , crClass :: DocClass -- ^ document class label
+                   } deriving (Eq, Ord, Show, Generic, Binary)
 
 bit :: Parser Bool
 bit = (char '0' $> False) <|> (char '1' $> True)
@@ -163,8 +175,10 @@ Each line contains two paper IDs. The first entry is the ID of the paper being c
 -- | only process the .cites file within the archive
 
 citesToFile :: (MonadThrow m, MonadIO m, MonadResource m) =>
-               FileInfo -> ConduitT ByteString c m ()
-citesToFile fi = do
+               FilePath
+            -> FileInfo
+            -> ConduitT ByteString c m ()
+citesToFile dir fi = do
   let fpath = unpack $ filePath fi
   when (takeExtension fpath == ".cites") $
     parseTSV .|
@@ -173,21 +187,22 @@ citesToFile fi = do
               Left e -> error $ errorBundlePretty e
               Right x -> x ) .|
     CB.conduitEncode .|
-    C.sinkFile "assets/citeseer/cites"
+    C.sinkFile (dir </> "cites")
 
-citesFromFile :: (MonadResource m, MonadThrow m) => ConduitT i (CitesRow String) m ()
-citesFromFile =
-  C.sourceFile "assets/citeseer/cites" .|
+citesFromFile :: (MonadResource m, MonadThrow m) => FilePath -> ConduitT i (CitesRow String) m ()
+citesFromFile dir =
+  C.sourceFile (dir </> "cites") .|
   CB.conduitDecode
 
 -- | Reconstruct the citation graph
 --
 -- NB : relies on the user having `stash`ed the dataset to local disk first.
-citeseerGraph :: IO (G.Graph ContentRow)
-citeseerGraph = do
-  mm <- restoreContent
+citeseerGraph :: FilePath -- ^ directory where the data files were saved
+              -> IO (G.Graph ContentRow)
+citeseerGraph dir = do
+  mm <- restoreContent dir
   runResourceT $ runConduit $
-    citesFromFile .|
+    citesFromFile dir .|
     C.foldl (\gr (CitesRow b a) ->
                let
                  edm = (,) <$> M.lookup a mm <*> M.lookup b mm
@@ -201,6 +216,26 @@ citeseerGraph = do
                      in
                        (acr `G.edge` bcr) `G.overlay` gr
                 ) G.empty
+
+-- | Stream out the edges of the citation graph, in which the nodes are decorated with the document metadata.
+--
+-- The full citation graph can be reconstructed by folding over this stream and `G.overlay`ing the graph edges as they arrive.
+--
+-- This way the graph can be partitioned in training , test and validation subsets at the usage site
+citeseerGraphEdges :: (MonadResource m, MonadThrow m) =>
+                      FilePath -- ^ directory of data files
+                   -> M.Map String (Seq Int16, DocClass) -- ^ 'content' data
+                   -> ConduitT i (Maybe (G.Graph ContentRow)) m ()
+citeseerGraphEdges dir mm =
+    citesFromFile dir .|
+    C.map (\(CitesRow b a) ->
+             case (,) <$> M.lookup a mm <*> M.lookup b mm of
+               Nothing -> Nothing
+               Just ((bffs, bc), (affs, ac)) ->
+                 let
+                       acr = CRow a affs ac
+                       bcr = CRow b bffs bc
+                 in Just (acr `G.edge` bcr))
 
 data CitesRow a = CitesRow { cirTo :: a, cirFrom :: a } deriving (Eq, Show, Generic, Binary)
 

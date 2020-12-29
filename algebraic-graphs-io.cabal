@@ -1,5 +1,5 @@
 name:                algebraic-graphs-io
-version:             0.1.5.1
+version:             0.2
 synopsis:            I/O utilities and datasets for algebraic-graphs
 description:         I/O utilities and datasets for algebraic-graphs. See README for details
 homepage:            https://github.com/ocramz/algebraic-graphs-io
@@ -35,9 +35,9 @@ library
                        Algebra.Graph.IO.Internal.Conduit
   other-modules:       
                        Algebra.Graph.IO.Internal.Megaparsec
-  build-depends:       base >= 4.7 && < 5
-                     , algebraic-graphs
+  build-depends:       algebraic-graphs
                      , attoparsec
+                     , base >= 4.7 && < 5
                      , binary
                      , binary-conduit
                      , bytestring
@@ -45,6 +45,7 @@ library
                      , conduit-extra
                      , containers
                      , csv-conduit
+                     , directory
                      , dot
                      , exceptions
                      , filepath
@@ -53,8 +54,8 @@ library
                      , megaparsec
                      , parser-combinators
                      , primitive
-                     , text
                      , tar-conduit
+                     , text
                      , vector
 
 test-suite spec
