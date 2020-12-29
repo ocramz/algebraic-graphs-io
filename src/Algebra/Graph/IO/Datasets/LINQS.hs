@@ -7,7 +7,7 @@
 module Algebra.Graph.IO.Datasets.LINQS (
   restoreContent, CitesRow(..), ContentRow(..), 
   -- * Internal
-  stash
+  stash, sourceGraphEdges, loadGraph
                                        ) where
 
 import Control.Applicative (Alternative(..))
@@ -193,7 +193,7 @@ citesRowP = CitesRow <$> lexeme alphaNum <*> lexeme alphaNum
 --
 -- 		\<paper_id\> \<word_attributes\> \<class_label\>
 --
--- The first entry in each line contains the unique string ID of the paper followed by binary values indicating whether each word in the vocabulary is present (indicated by 1) or absent (indicated by 0) in the paper (vocabulary : 3703 unique words). Finally, the last entry in the line contains the class label of the paper.
+-- The first entry in each line contains the unique string ID of the paper followed by binary values indicating whether each word in the vocabulary is present (indicated by 1) or absent (indicated by 0) in the paper. Finally, the last entry in the line contains the class label of the paper.
 data ContentRow c = CRow {
   crId :: String -- ^ identifier
   , crFeatures :: Seq Int16 -- ^ features, in sparse format (without the zeros)
@@ -211,9 +211,7 @@ contentRowP :: Int -- ^ vocabulary size
             -> Parser (ContentRow c)
 contentRowP n dcp = do
   i <- lexeme alphaNum
-  -- let n = 3703
-  foh <- count n (lexeme bit) -- one-hot encoded features
-  let feats = sparse foh
+  feats <- sparse <$> count n (lexeme bit)
   c <- lexeme dcp
   pure $ CRow i feats c
 

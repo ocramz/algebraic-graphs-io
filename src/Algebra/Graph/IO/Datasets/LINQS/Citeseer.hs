@@ -10,8 +10,9 @@
 module Algebra.Graph.IO.Datasets.LINQS.Citeseer (
   -- * 1. Download the dataset
   stash
-  -- * 2. Reconstruct the citation graph (`DL.sourceGraphEdges` or `DL.loadGraph`)
-    -- * Types
+  -- * 2. Reconstruct the citation graph
+  , sourceCiteseerGraphEdges, loadCiteseerGraph
+  -- * Types
     ,DocClass(..)) where
 
 import Control.Applicative (Alternative(..))
@@ -63,7 +64,7 @@ import qualified Data.Text.IO as T (readFile)
 import Algebra.Graph.IO.Internal.Conduit (fetch, unTarGz)
 import Algebra.Graph.IO.Internal.Megaparsec (Parser, ParseE, symbol, lexeme, alphaNum)
 import Algebra.Graph.IO.SV (parseTSV)
-import qualified Algebra.Graph.IO.Datasets.LINQS as DL (stash, restoreContent, CitesRow(..), ContentRow(..))
+import qualified Algebra.Graph.IO.Datasets.LINQS as DL (stash, sourceGraphEdges, loadGraph, restoreContent, CitesRow(..), ContentRow(..))
 {-
 CiteSeer: The CiteSeer dataset consists of 3312 scientific publications classified into one of six classes. The citation network consists of 4732 links. Each publication in the dataset is described by a 0/1-valued word vector indicating the absence/presence of the corresponding word from the dictionary. The dictionary consists of 3703 unique words. The README file in the dataset provides more details.
 http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz
@@ -73,6 +74,17 @@ stash :: FilePath -- ^ directory where the data files will be saved
       -> IO ()
 stash fp = DL.stash fp "http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz" 3703 docClassP
 
+
+sourceCiteseerGraphEdges :: (MonadResource m, MonadThrow m) =>
+                      FilePath -- ^ directory of data files
+                   -> M.Map String (Seq Int16, DocClass) -- ^ 'content' data
+                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow DocClass))) m ()
+sourceCiteseerGraphEdges = DL.sourceGraphEdges
+
+loadCiteseerGraph :: 
+                     FilePath -- ^ directory where the data files were saved
+                  -> IO (G.Graph (DL.ContentRow DocClass))
+loadCiteseerGraph = DL.loadGraph
 
 -- | document classes of the Citeseer dataset
 data DocClass = Agents | AI | DB | IR | ML | HCI deriving (Eq, Ord, Enum, Show, Generic, Binary)
