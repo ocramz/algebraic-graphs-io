@@ -71,21 +71,22 @@ import qualified Algebra.Graph.IO.Datasets.LINQS as DL (stash, sourceGraphEdges,
 CiteSeer: The CiteSeer dataset consists of 3312 scientific publications classified into one of six classes. The citation network consists of 4732 links. Each publication in the dataset is described by a 0/1-valued word vector indicating the absence/presence of the corresponding word from the dictionary. The dictionary consists of 3703 unique words. The README file in the dataset provides more details.
 -}
 
+-- | See `DL.stash`
 stash :: FilePath -- ^ directory where the data files will be saved
       -> IO ()
 stash fp = DL.stash fp "http://www.cs.umd.edu/~sen/lbc-proj/data/citeseer.tgz" 3703 docClassP
 
 -- | See `DL.sourceGraphEdges`
-sourceCiteseerGraphEdges :: (MonadResource m, MonadThrow m, Binary ix) =>
+sourceCiteseerGraphEdges :: (MonadResource m, MonadThrow m) =>
                       FilePath -- ^ directory of data files
-                   -> M.Map String (ix, Seq Int16, CiteSeerDoc) -- ^ 'content' data
-                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow ix CiteSeerDoc))) m ()
+                   -> M.Map String (Int16, Seq Int16, CiteSeerDoc) -- ^ 'content' data
+                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow Int16 CiteSeerDoc))) m ()
 sourceCiteseerGraphEdges = DL.sourceGraphEdges
 
 -- | See `DL.loadGraph`
-loadCiteseerGraph :: (Binary ix) => 
+loadCiteseerGraph :: -- (Binary ix) => 
                      FilePath -- ^ directory where the data files were saved
-                  -> IO (G.Graph (DL.ContentRow ix CiteSeerDoc))
+                  -> IO (G.Graph (DL.ContentRow Int16 CiteSeerDoc))
 loadCiteseerGraph = DL.loadGraph
 
 -- | document classes of the Citeseer dataset

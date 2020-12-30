@@ -100,20 +100,20 @@ The papers were selected in a way such that in the final corpus every paper cite
 After stemming and removing stopwords we were left with a vocabulary of size 1433 unique words. All words with document frequency less than 10 were removed.
 -}
 
+-- | See `DL.stash`
 stash :: FilePath -> IO ()
 stash fp = DL.stash fp "http://www.cs.umd.edu/~sen/lbc-proj/data/cora.tgz" 1433 docClassP
 
 -- | See `DL.sourceGraphEdges`
-sourceCoraGraphEdges :: (MonadResource m, MonadThrow m, Binary ix) =>
+sourceCoraGraphEdges :: (MonadResource m, MonadThrow m) =>
                       FilePath -- ^ directory of data files
-                   -> M.Map String (ix, Seq Int16, CoraDoc) -- ^ 'content' data
-                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow ix CoraDoc))) m ()
+                   -> M.Map String (Int16, Seq Int16, CoraDoc) -- ^ 'content' data
+                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow Int16 CoraDoc))) m ()
 sourceCoraGraphEdges = DL.sourceGraphEdges
 
 -- | See `DL.loadGraph`
-loadCoraGraph :: (Binary ix) =>
-                 FilePath -- ^ directory where the data files were saved
-              -> IO (G.Graph (DL.ContentRow ix CoraDoc))
+loadCoraGraph :: FilePath -- ^ directory where the data files were saved
+              -> IO (G.Graph (DL.ContentRow Int16 CoraDoc))
 loadCoraGraph = DL.loadGraph
 
 

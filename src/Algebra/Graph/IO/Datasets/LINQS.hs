@@ -97,8 +97,8 @@ stash dir uri n pc = do
      citesToFile dir fi )
 
 -- | Load the graph node data from local storage
-restoreContent :: (Binary c, Binary i) => FilePath -- ^ directory where the data files are saved
-               -> IO (M.Map String (i, Seq Int16, c))
+restoreContent :: (Binary c) => FilePath -- ^ directory where the data files are saved
+               -> IO (M.Map String (Int16, Seq Int16, c))
 restoreContent dir = runResourceT $ runConduit $
   contentFromFile dir .|
   C.foldMap ( \(CRow i k fs c) -> M.singleton k (i, fs, c) )
@@ -112,9 +112,9 @@ citesFromFile dir =
 -- | Reconstruct the citation graph
 --
 -- NB : relies on the user having `stash`ed the dataset to local disk first.
-loadGraph :: (Binary c, Binary i) =>
+loadGraph :: (Binary c) =>
              FilePath -- ^ directory where the data files were saved
-          -> IO (G.Graph (ContentRow i c))
+          -> IO (G.Graph (ContentRow Int16 c))
 loadGraph dir = do
   mm <- restoreContent dir
   runResourceT $ runConduit $
@@ -140,8 +140,8 @@ loadGraph dir = do
 -- This way the graph can be partitioned in training , test and validation subsets at the usage site
 sourceGraphEdges :: (MonadResource m, MonadThrow m) =>
                       FilePath -- ^ directory of data files
-                   -> M.Map String (ix, Seq Int16, c) -- ^ 'content' data
-                   -> ConduitT i (Maybe (G.Graph (ContentRow ix c))) m ()
+                   -> M.Map String (Int16, Seq Int16, c) -- ^ 'content' data
+                   -> ConduitT i (Maybe (G.Graph (ContentRow Int16 c))) m ()
 sourceGraphEdges dir mm =
     citesFromFile dir .|
     C.map (\(CitesRow b a) ->
@@ -155,6 +155,10 @@ sourceGraphEdges dir mm =
 
 
 -- | Pick out the 'content' file in the archive, parse its contents and serialize to disk
+--
+-- | NB : the integer node identifiers are serialized as Int16, so the graph can only have up to 65535 nodes.
+--
+-- Contact customer service if you need more node IDs.
 contentToFile :: (MonadThrow m, MonadResource m, Binary c) =>
                  FilePath
               -> Int -- ^ dictionary size
@@ -167,13 +171,13 @@ contentToFile dir n pc fi = when ((takeExtension . unpack $ filePath fi) == ".co
     void (C.mapAccumWhile ( \r i -> do
                case parse (contentRowP i n pc) "" r of
                  Left e -> error $ errorBundlePretty e
-                 Right x -> Right (succ i, x) ) (0 :: Int)
+                 Right x -> Right (succ i, x) ) (0 :: Int16)
          ) .|
     CB.conduitEncode .|
     C.sinkFile (dir </> "content-z")
 
-contentFromFile :: (MonadResource m, MonadThrow m, Binary c, Binary ix) => FilePath
-                -> ConduitT i (ContentRow ix c) m ()
+contentFromFile :: (MonadResource m, MonadThrow m, Binary c) => FilePath
+                -> ConduitT i (ContentRow Int16 c) m ()
 contentFromFile dir =
   C.sourceFile (dir </> "content-z") .|
   CB.conduitDecode
