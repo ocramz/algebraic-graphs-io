@@ -1,3 +1,7 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# language GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# language DeriveAnyClass #-}
@@ -7,13 +11,15 @@
 module Algebra.Graph.IO.Datasets.LINQS (
   restoreContent, CitesRow(..), ContentRow(..), 
   -- * Internal
-  stash, sourceGraphEdges, loadGraph
+  stash,
+  sourceGraphEdges, loadGraph
                                        ) where
 
 import Control.Applicative (Alternative(..))
 import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO(..))
-import Data.Functor (($>))
+import Data.Functor (($>), void)
+
 import GHC.Generics (Generic(..))
 import GHC.Int (Int16)
 
@@ -28,8 +34,8 @@ import Data.Binary (Binary(..), encode, decode, encodeFile, decodeFileOrFail)
 import qualified Data.Conduit.Serialization.Binary as CB (conduitDecode, conduitEncode, ParseError(..))
 -- conduit
 import Conduit (MonadUnliftIO(..), MonadResource, runResourceT)
-import Data.Conduit (runConduit, ConduitT, (.|), yield, await)
-import qualified Data.Conduit.Combinators as C (print, sourceFile, sinkFile, map, mapM, foldM, mapWhile, foldMap, foldl)
+import Data.Conduit (runConduit, ConduitT, (.|), yield, await, runConduitRes)
+import qualified Data.Conduit.Combinators as C (print, sourceFile, sinkFile, map, mapM, foldM, mapWhile, mapAccumWhile, foldMap, foldl, scanl)
 -- containers
 import Data.Sequence (Seq, (|>))
 import qualified Data.Map as M (Map, singleton, lookup)
@@ -42,23 +48,22 @@ import System.FilePath ((</>), takeFileName, takeExtension)
 -- http-conduit
 import Network.HTTP.Simple (httpSource, getResponseBody, Response, Request, parseRequest, setRequestMethod)
 -- megaparsec
-import Text.Megaparsec (parse)
+import Text.Megaparsec (parse, runParserT)
 import Text.Megaparsec.Char (char)
-import Text.Megaparsec.Char.Lexer (decimal)
-import Text.Megaparsec.Error (errorBundlePretty)
+import Text.Megaparsec.Error (errorBundlePretty, ParseErrorBundle)
 -- parser.combinators
 import Control.Monad.Combinators (count)
--- primitive
-import Control.Monad.Primitive (PrimMonad(..))
 -- tar-conduit
 import Data.Conduit.Tar (Header(..), untarChunks, TarChunk, withEntries, FileInfo, filePath, withFileInfo, headerFileType, FileType(..), headerFilePath)
 -- text
-import Data.Text (Text)
+
 import qualified Data.Text as T (Text, unwords)
-import qualified Data.Text.IO as T (readFile)
+
+-- transformers
+
 
 import Algebra.Graph.IO.Internal.Conduit (fetch, unTarGz)
-import Algebra.Graph.IO.Internal.Megaparsec (Parser, ParseE, symbol, lexeme, alphaNum)
+import Algebra.Graph.IO.Internal.Megaparsec (Parser, ParserT, ParseE, symbol, lexeme, alphaNum)
 import Algebra.Graph.IO.SV (parseTSV)
 
 {-
@@ -92,11 +97,11 @@ stash dir uri n pc = do
      citesToFile dir fi )
 
 -- | Load the graph node data from local storage
-restoreContent :: (Binary c) => FilePath -- ^ directory where the data files are saved
-               -> IO (M.Map String (Seq Int16, c))
+restoreContent :: (Binary c, Binary i) => FilePath -- ^ directory where the data files are saved
+               -> IO (M.Map String (i, Seq Int16, c))
 restoreContent dir = runResourceT $ runConduit $
   contentFromFile dir .|
-  C.foldMap ( \(CRow k fs c) -> M.singleton k (fs, c) )
+  C.foldMap ( \(CRow i k fs c) -> M.singleton k (i, fs, c) )
 
 
 citesFromFile :: (MonadResource m, MonadThrow m) => FilePath -> ConduitT i (CitesRow String) m ()
@@ -107,9 +112,9 @@ citesFromFile dir =
 -- | Reconstruct the citation graph
 --
 -- NB : relies on the user having `stash`ed the dataset to local disk first.
-loadGraph :: (Binary c) =>
-                 FilePath -- ^ directory where the data files were saved
-              -> IO (G.Graph (ContentRow c))
+loadGraph :: (Binary c, Binary i) =>
+             FilePath -- ^ directory where the data files were saved
+          -> IO (G.Graph (ContentRow i c))
 loadGraph dir = do
   mm <- restoreContent dir
   runResourceT $ runConduit $
@@ -120,10 +125,10 @@ loadGraph dir = do
                in
                  case edm of
                    Nothing -> gr -- error $ show e
-                   Just ((bffs, bc), (affs, ac)) ->
+                   Just ((ib, bffs, bc), (ia, affs, ac)) ->
                      let
-                       acr = CRow a affs ac
-                       bcr = CRow b bffs bc
+                       acr = CRow ia a affs ac
+                       bcr = CRow ib b bffs bc
                      in
                        (acr `G.edge` bcr) `G.overlay` gr
                 ) G.empty
@@ -135,25 +140,21 @@ loadGraph dir = do
 -- This way the graph can be partitioned in training , test and validation subsets at the usage site
 sourceGraphEdges :: (MonadResource m, MonadThrow m) =>
                       FilePath -- ^ directory of data files
-                   -> M.Map String (Seq Int16, c) -- ^ 'content' data
-                   -> ConduitT i (Maybe (G.Graph (ContentRow c))) m ()
+                   -> M.Map String (ix, Seq Int16, c) -- ^ 'content' data
+                   -> ConduitT i (Maybe (G.Graph (ContentRow ix c))) m ()
 sourceGraphEdges dir mm =
     citesFromFile dir .|
     C.map (\(CitesRow b a) ->
              case (,) <$> M.lookup a mm <*> M.lookup b mm of
                Nothing -> Nothing
-               Just ((bffs, bc), (affs, ac)) ->
+               Just ((ib, bffs, bc), (ia, affs, ac)) ->
                  let
-                       acr = CRow a affs ac
-                       bcr = CRow b bffs bc
+                       acr = CRow ia a affs ac
+                       bcr = CRow ib b bffs bc
                  in Just (acr `G.edge` bcr))
 
 
-
-
-
-
-
+-- | Pick out the 'content' file in the archive, parse its contents and serialize to disk
 contentToFile :: (MonadThrow m, MonadResource m, Binary c) =>
                  FilePath
               -> Int -- ^ dictionary size
@@ -163,14 +164,16 @@ contentToFile :: (MonadThrow m, MonadResource m, Binary c) =>
 contentToFile dir n pc fi = when ((takeExtension . unpack $ filePath fi) == ".content") $ do
   parseTSV .|
     C.map T.unwords .|
-    C.map ( \r -> case parse (contentRowP n pc) "" r of
-              Left e -> error $ errorBundlePretty e
-              Right x -> x ) .|
+    void (C.mapAccumWhile ( \r i -> do
+               case parse (contentRowP i n pc) "" r of
+                 Left e -> error $ errorBundlePretty e
+                 Right x -> Right (succ i, x) ) (0 :: Int)
+         ) .|
     CB.conduitEncode .|
     C.sinkFile (dir </> "content-z")
 
-contentFromFile :: (MonadResource m, MonadThrow m, Binary c) => FilePath
-                -> ConduitT i (ContentRow c) m ()
+contentFromFile :: (MonadResource m, MonadThrow m, Binary c, Binary ix) => FilePath
+                -> ConduitT i (ContentRow ix c) m ()
 contentFromFile dir =
   C.sourceFile (dir </> "content-z") .|
   CB.conduitDecode
@@ -193,8 +196,9 @@ citesRowP = CitesRow <$> lexeme alphaNum <*> lexeme alphaNum
 -- 		\<paper_id\> \<word_attributes\> \<class_label\>
 --
 -- The first entry in each line contains the unique string ID of the paper followed by binary values indicating whether each word in the vocabulary is present (indicated by 1) or absent (indicated by 0) in the paper. Finally, the last entry in the line contains the class label of the paper.
-data ContentRow c = CRow {
-  crId :: String -- ^ identifier
+data ContentRow i c = CRow {
+  crId :: i -- ^ integer identifier
+  , crIdStr :: String -- ^ identifier string
   , crFeatures :: Seq Int16 -- ^ features, in sparse format (without the zeros)
   , crClass :: c -- ^ document class label
                    } deriving (Eq, Ord, Show, Generic, Binary)
@@ -205,14 +209,15 @@ bit = (char '0' $> False) <|> (char '1' $> True)
 sparse :: Foldable t => t Bool -> Seq Int16
 sparse = fst . foldl (\(acc, i) b -> if b then (acc |> i, succ i) else (acc, succ i)) (mempty, 0)
 
-contentRowP :: Int -- ^ vocabulary size
+contentRowP :: i -- ^ node identifier
+            -> Int -- ^ vocabulary size
             -> Parser c -- ^ parser for document class
-            -> Parser (ContentRow c)
-contentRowP n dcp = do
-  i <- lexeme alphaNum
+            -> Parser (ContentRow i c)
+contentRowP i n dcp = do
+  istr <- lexeme alphaNum
   feats <- sparse <$> count n (lexeme bit)
   c <- lexeme dcp
-  pure $ CRow i feats c
+  pure $ CRow i istr feats c
 
 
 
@@ -230,3 +235,6 @@ citesToFile dir fi = do
               Right x -> x ) .|
     CB.conduitEncode .|
     C.sinkFile (dir </> "cites")
+
+
+

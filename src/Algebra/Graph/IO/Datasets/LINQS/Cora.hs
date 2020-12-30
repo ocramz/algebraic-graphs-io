@@ -9,6 +9,8 @@
 -- Qing Lu, and Lise Getoor. "Link-based classification." ICML, 2003.
 --
 -- https://linqs.soe.ucsc.edu/data
+--
+-- The dataset consists of 2708 scientific publications classified into one of seven classes. The citation network consists of 5429 links. Each publication in the dataset is described by a 0/1-valued word vector indicating the absence/presence of the corresponding word from the dictionary. The dictionary consists of 1433 unique words.
 module Algebra.Graph.IO.Datasets.LINQS.Cora (
     -- * 1. Download the dataset
   stash
@@ -102,15 +104,16 @@ stash :: FilePath -> IO ()
 stash fp = DL.stash fp "http://www.cs.umd.edu/~sen/lbc-proj/data/cora.tgz" 1433 docClassP
 
 -- | See `DL.sourceGraphEdges`
-sourceCoraGraphEdges :: (MonadResource m, MonadThrow m) =>
+sourceCoraGraphEdges :: (MonadResource m, MonadThrow m, Binary ix) =>
                       FilePath -- ^ directory of data files
-                   -> M.Map String (Seq Int16, CoraDoc) -- ^ 'content' data
-                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow CoraDoc))) m ()
+                   -> M.Map String (ix, Seq Int16, CoraDoc) -- ^ 'content' data
+                   -> ConduitT i (Maybe (G.Graph (DL.ContentRow ix CoraDoc))) m ()
 sourceCoraGraphEdges = DL.sourceGraphEdges
 
 -- | See `DL.loadGraph`
-loadCoraGraph :: FilePath -- ^ directory where the data files were saved
-                  -> IO (G.Graph (DL.ContentRow CoraDoc))
+loadCoraGraph :: (Binary ix) =>
+                 FilePath -- ^ directory where the data files were saved
+              -> IO (G.Graph (DL.ContentRow ix CoraDoc))
 loadCoraGraph = DL.loadGraph
 
 

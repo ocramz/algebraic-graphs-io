@@ -1,6 +1,6 @@
 {-# language OverloadedStrings #-}
 {-# options_ghc -Wno-unused-imports #-}
-module Algebra.Graph.IO.Internal.Megaparsec (Parser, ParseE,
+module Algebra.Graph.IO.Internal.Megaparsec (Parser, ParserT, ParseE,
                                             -- * Internal
                                             lexeme, symbol, anyString, alphaNum
                                             ) where
@@ -10,7 +10,7 @@ import Data.Char (isAlpha, isSpace, isAlphaNum)
 import Data.Void (Void)
 
 -- megaparsec
-import Text.Megaparsec (Parsec, parseTest, satisfy, (<?>))
+import Text.Megaparsec (Parsec, ParsecT, parseTest, satisfy, (<?>))
 import Text.Megaparsec.Char (space1)
 import Text.Megaparsec.Error (ParseErrorBundle)
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -20,6 +20,8 @@ import Control.Monad.Combinators (many, some, between)
 import Data.Text (Text)
 
 type Parser = Parsec Void Text
+
+type ParserT = ParsecT Void Text
 
 type ParseE = ParseErrorBundle Text Void
 

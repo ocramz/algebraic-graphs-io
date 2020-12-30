@@ -1,5 +1,5 @@
 name:                algebraic-graphs-io
-version:             0.3
+version:             0.4
 synopsis:            I/O utilities and datasets for algebraic-graphs
 description:         I/O utilities and datasets for algebraic-graphs. See README for details
 homepage:            https://github.com/ocramz/algebraic-graphs-io
@@ -53,10 +53,12 @@ library
                      , http-conduit
                      , matrix-market-attoparsec
                      , megaparsec
+                     , mtl
                      , parser-combinators
                      , primitive
                      , tar-conduit
                      , text
+                     , transformers
                      , vector
 
 test-suite spec

@@ -1,3 +1,9 @@
+* 0.4
+
+  LINQS datasets : 
+  
+  - Add integer identifier to node metadata
+
 * 0.3
 
   Add Cora dataset
