@@ -56,14 +56,11 @@ import Control.Monad.Combinators (count)
 -- tar-conduit
 import Data.Conduit.Tar (Header(..), untarChunks, TarChunk, withEntries, FileInfo, filePath, withFileInfo, headerFileType, FileType(..), headerFilePath)
 -- text
-
 import qualified Data.Text as T (Text, unwords)
 
--- transformers
 
 
-import Algebra.Graph.IO.Internal.Conduit (fetch, unTarGz)
-import Algebra.Graph.IO.Internal.Megaparsec (Parser, ParserT, ParseE, symbol, lexeme, alphaNum)
+import Algebra.Graph.IO.Internal (fetch, unTarGz, Parser, ParserT, ParseE, symbol, lexeme, alphaNum)
 import Algebra.Graph.IO.SV (parseTSV)
 
 {-

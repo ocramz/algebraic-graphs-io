@@ -1,3 +1,12 @@
+* 0.5
+
+  - no 'Dot' and 'matrix-market' support for now: 
+    Dot/graphviz export is already supported within algebraic-graphs and matrix-market can be made available on a need basis
+    
+  - add JSON codec
+  
+  - add 'serialise'-based binary codec
+
 * 0.4
 
   LINQS datasets : 
