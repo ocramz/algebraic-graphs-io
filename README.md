@@ -10,6 +10,10 @@ Currently the following formats are supported :
 
 * .tsv : tab-separated list of edge data, used e.g. for the Graph Challenge dataset [1]
 
+* JSON : via 'aeson'
+
+* CBOR : via 'serialise'
+
 
 ## Datasets
 
