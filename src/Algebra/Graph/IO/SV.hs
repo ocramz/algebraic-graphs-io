@@ -40,12 +40,12 @@ import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8)
 
 import Algebra.Graph.IO.Internal.Megaparsec (Parser, ParseE)
-import Algebra.Graph.IO.Internal.Conduit (unTarGz, fetch)
+import Algebra.Graph.IO.Internal.Conduit (unTarGz, Process)
 
 
 
 
--- | Process chunks of a (uncompressed) TSV file and output the resulting graph
+-- | fetch chunks of a (uncompressed) TSV file and output the resulting graph
 --
 -- NB The TSV is assumed to have three columns, where the first two contain the node IDs of the edges
 tsvSink :: (MonadThrow m) => ConduitT ByteString o m (G.Graph Int)

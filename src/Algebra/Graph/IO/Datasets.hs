@@ -2,7 +2,8 @@
 module Algebra.Graph.IO.Datasets where
 
 import Algebra.Graph (Graph)
-import Algebra.Graph.IO.GML (GMLGraph, gmlGraph, gmlGraphP)
+import qualified Algebra.Graph.ToGraph as G  (ToGraph(..))
+import Algebra.Graph.IO.GML (GMLGraph, gmlGraphP)
 import qualified Algebra.Graph.IO.SV as SV (tsvSink)
 import Algebra.Graph.IO.Internal.Megaparsec (Parser, anyString)
 
@@ -26,7 +27,7 @@ lesMiserables :: IO (Graph Int)
 lesMiserables = do
   t <- readFile "assets/lesmiserables.gml"
   case parse (gmlGraphP decimal decimal) "" t of
-    Right gg -> pure $ gmlGraph gg
+    Right gg -> pure $ G.toGraph gg
     Left e -> error $ errorBundlePretty e
 
 -- | "Karate club" dataset
@@ -36,7 +37,7 @@ karateClub :: IO (Graph Int)
 karateClub = do
   t <- readFile "assets/karate.gml"
   case parse (gmlGraphP decimal anyString) "" t of
-    Right gg -> pure $ gmlGraph gg
+    Right gg -> pure $ G.toGraph gg
     Left e -> error $ errorBundlePretty e
 
 -- | Small test dataset
