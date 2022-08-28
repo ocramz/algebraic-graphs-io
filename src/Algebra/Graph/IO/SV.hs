@@ -1,48 +1,33 @@
 {-# language OverloadedStrings #-}
 {-# options_ghc -Wno-unused-imports #-}
 module Algebra.Graph.IO.SV (
-  parseTSV, 
-  tsvSink
+  -- * Parse rows of a TSV file
+  tsvSink,
+  -- ** Labelled graphs
+  tsvSinkL,
+  -- * Utilities
+  parseTSV,
   ) where
-
-import Control.Monad (when)
-import Control.Monad.IO.Class (MonadIO(..))
-import Data.Void (Void)
 
 -- algebraic-graphs
 import qualified Algebra.Graph as G (Graph, edge, empty, overlay)
+import qualified Algebra.Graph.Labelled as GL (Graph, edge, empty, connect, overlay)
 -- bytestring
 import Data.ByteString (ByteString)
 -- conduit
-import Conduit (MonadUnliftIO(..), MonadResource, runResourceT)
-import Data.Conduit (runConduit, ConduitT, (.|), yield, await)
-import qualified Data.Conduit.Combinators as C (print, sourceFile, sinkFile, map, mapM, foldM, mapWhile)
--- conduit-extra
-import Data.Conduit.Zlib (ungzip)
+import Data.Conduit (ConduitT, (.|))
+import qualified Data.Conduit.Combinators as C (map, foldM)
 -- csv-conduit
 import Data.CSV.Conduit (CSV(..), CSVSettings(..), Row)
 -- exceptions
 import Control.Monad.Catch (MonadThrow(..))
-
--- http-conduit
-import Network.HTTP.Simple (httpSource, getResponseBody, Response, Request, parseRequest, setRequestMethod)
 -- megaparsec
-import Text.Megaparsec (parse)
+import Text.Megaparsec (parse, sepBy)
 import Text.Megaparsec.Char.Lexer (decimal)
--- parser.combinators
-import Control.Monad.Combinators (count)
--- primitive
-import Control.Monad.Primitive (PrimMonad(..))
--- tar-conduit
-import Data.Conduit.Tar (Header(..), untarChunks, TarChunk, withEntries, headerFileType, FileType(..), headerFilePath)
 -- text
 import Data.Text (Text)
-import Data.Text.Encoding (decodeUtf8)
 
 import Algebra.Graph.IO.Internal.Megaparsec (Parser, ParseE)
-import Algebra.Graph.IO.Internal.Conduit (unTarGz, Process)
-
-
 
 
 -- | fetch chunks of a (uncompressed) TSV file and output the resulting graph
@@ -51,23 +36,44 @@ import Algebra.Graph.IO.Internal.Conduit (unTarGz, Process)
 tsvSink :: (MonadThrow m) => ConduitT ByteString o m (G.Graph Int)
 tsvSink = parseTSV .| C.map edgeP .| accGraph
 
+-- | same as 'tsvSink', but uses the third TSV column as edge label
+tsvSinkL :: (MonadThrow m) => ConduitT ByteString o m (GL.Graph [Int] Int)
+tsvSinkL = parseTSV .| C.map edgeP .| accLGraph
+
 parseTSV :: MonadThrow m => ConduitT ByteString (Row Text) m ()
 parseTSV = intoCSV tsvSettings
 
-edgeP :: [Text] -> Maybe (Edge Int)
-edgeP t =
-  case traverse (parse decimal "" :: Text -> Either ParseE Int) t of
-    Left _ -> Nothing
-    Right (a:b:c:_) -> Just $ Edge a b c
-    Right _ -> Nothing
+edgeP :: Row Text -> Maybe (Edge [Int] Int)
+edgeP = rowToEdge decimal decimal
 
-data Edge a = Edge a a a deriving (Eq, Show)
+rowToEdge :: Parser a -- ^ node IDs
+          -> Parser e -- ^ edge labels
+          -> Row Text -- ^ TSV row contents
+          -> Maybe (Edge [e] a)
+rowToEdge nodeP labelP t = case t of
+  (ta:tb:te:_) -> case (parseNode ta, parseNode tb, parseEdge te) of
+    (Right a, Right b, Right e) -> pure (Edge a b [e])
+    _ -> Nothing
+  _ -> Nothing
+  where
+    parseNode = parse nodeP ""
+    parseEdge = parse labelP ""
 
-accGraph :: (Monad m) => ConduitT (Maybe (Edge a)) o m (G.Graph a)
-accGraph = flip C.foldM G.empty $ \acc m -> 
+
+-- | Labeled graph edges
+data Edge e a = Edge a a e deriving (Eq, Show)
+
+accGraph :: (Monad m) => ConduitT (Maybe (Edge e a)) o m (G.Graph a)
+accGraph = flip C.foldM G.empty $ \acc m ->
   case m of
     Just (Edge a b _) -> pure $ (a `G.edge` b) `G.overlay` acc
     Nothing -> pure acc
+
+accLGraph :: (Monad m) => ConduitT (Maybe (Edge [e] a)) o m (GL.Graph [e] a)
+accLGraph = flip C.foldM GL.empty $ \acc m -> 
+  case m of
+    Just (Edge a b [e]) -> pure $ (GL.edge [e] a b) `GL.overlay` acc
+    _ -> pure acc
 
 -- | tab-separated values
 tsvSettings :: CSVSettings

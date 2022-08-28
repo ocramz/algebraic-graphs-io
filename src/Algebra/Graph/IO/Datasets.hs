@@ -2,9 +2,10 @@
 module Algebra.Graph.IO.Datasets where
 
 import Algebra.Graph (Graph)
+import qualified Algebra.Graph.Labelled as GL (Graph)
 import qualified Algebra.Graph.ToGraph as G  (ToGraph(..))
 import Algebra.Graph.IO.GML (GMLGraph, gmlGraphP)
-import qualified Algebra.Graph.IO.SV as SV (tsvSink)
+import qualified Algebra.Graph.IO.SV as SV (tsvSink, tsvSinkL)
 import Algebra.Graph.IO.Internal.Megaparsec (Parser, anyString)
 
 -- conduit
@@ -47,3 +48,9 @@ blockModel50 :: IO (Graph Int)
 blockModel50 = runResourceT $ runConduit $
   C.sourceFile "assets/simulated_blockmodel_graph_50_nodes.tsv" .|
   SV.tsvSink
+
+-- | same as 'blockModel50' but with edge labels
+blockModel50L :: IO (GL.Graph [Int] Int)
+blockModel50L = runResourceT $ runConduit $
+  C.sourceFile "assets/simulated_blockmodel_graph_50_nodes.tsv" .|
+  SV.tsvSinkL
