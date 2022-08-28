@@ -1,7 +1,7 @@
 {-# language OverloadedStrings #-}
 {-# options_ghc -Wno-unused-imports #-}
 module Algebra.Graph.IO.Internal.Megaparsec (Parser, ParserT, ParseE,
-                                            -- * Internal
+                                            -- ** Internal
                                             lexeme, symbol, anyString, alphaNum
                                             ) where
 
