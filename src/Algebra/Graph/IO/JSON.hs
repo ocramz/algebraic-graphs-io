@@ -21,15 +21,33 @@ import Control.Applicative (Alternative(..))
 import GHC.Generics (Generic)
 
 -- aeson
-import qualified Data.Aeson as A (FromJSON(..), ToJSON(..), encode, eitherDecode, Value, withArray, withText, withObject, (.:), Object)
+import qualified Data.Aeson as A (FromJSON(..), ToJSON(..), ToJSONKey(..), FromJSONKey(..), encode, eitherDecode, Value, withArray, withText, withObject, (.:), Object)
 import qualified Data.Aeson.Types as A (Parser)
 import qualified Data.Aeson.Encoding as A (value, fromEncoding)
 -- alga
 import qualified Algebra.Graph as G (Graph(..), edges, foldg)
 import qualified Algebra.Graph.Labelled as GL (Graph(..), edges, foldg)
+import qualified Algebra.Graph.ToGraph as G (ToGraph(..), toAdjacencyMap)
+import qualified Algebra.Graph.AdjacencyMap as GAM (AdjacencyMap, adjacencyMap, edgeList, vertexList)
+
+
+g0 :: G.Graph Int
+g0 = G.edges [(1, 2), (3, 4), (5, 6), (1, 5), (2, 6)]
+
+
+
+instance (A.ToJSON a, A.ToJSONKey a) => A.ToJSON (GAM.AdjacencyMap a)
+
+instance (A.FromJSON a, Ord a, A.FromJSONKey a) => A.FromJSON (GAM.AdjacencyMap a)
+
 
 -- unlabeled edges
 
+-- instance (Ord a, A.ToJSON a, A.ToJSONKey a) => A.ToJSON (G.Graph a) where
+--   toJSON = A.toJSON . G.toAdjacencyMap
+
+
+-- | TODO benchmark against ToJSON AdjacencyMap instance
 instance A.ToJSON a => A.ToJSON (G.Graph a) where
   toJSON = graphToValue
 
@@ -45,7 +63,7 @@ graphToValue = go
 
 
 
-
+-- | TODO benchmark against FromJSON AdjacencyMap instance
 instance A.FromJSON a => A.FromJSON (G.Graph a) where
   parseJSON x = A.withObject "Graph" gObj x <|>
                 parseE x
